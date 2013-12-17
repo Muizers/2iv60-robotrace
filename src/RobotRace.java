@@ -802,12 +802,42 @@ public class RobotRace extends Base {
         
         /** Number of segments to be used to draw the race tracks. */
         private int SEGMENTS = 100;
+        
+        /** Display list for the test track. */
+        private int displayListTestTrack = 0;
+        
+        /** Whether the display list for the test track was created yet. */
+        private boolean displayListTestTrackSetUp = false;
+        
+        /** Display list for the test track. */
+        private int displayListOTrack = 0;
+        
+        /** Whether the display list for the test track was created yet. */
+        private boolean displayListOTrackSetUp = false;
+        
+        /** Display list for the test track. */
+        private int displayListLTrack = 0;
+        
+        /** Whether the display list for the test track was created yet. */
+        private boolean displayListLTrackSetUp = false;
+        
+        /** Display list for the test track. */
+        private int displayListCTrack = 0;
+        
+        /** Whether the display list for the test track was created yet. */
+        private boolean displayListCTrackSetUp = false;
+        
+        /** Display list for the test track. */
+        private int displayListCustomTrack = 0;
+        
+        /** Whether the display list for the test track was created yet. */
+        private boolean displayListCustomTrackSetUp = false;
 
         /**
          * Constructs the race track, sets up display lists.
          */
         public RaceTrack() {
-            // code goes here ...
+            
         }
 
         /**
@@ -817,23 +847,43 @@ public class RobotRace extends Base {
 
             // The test track is selected
             if (0 == trackNr) {
-                for (int curve = 0; curve < 4; curve++) {
-                    materials[curve].setSurfaceColor(gl);
-                    gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                        for (int i = 0; i < SEGMENTS; i++) {
-                            double t = i/((double) SEGMENTS);
-                            Vector inner = getPointOnCurve(t, curve);
-                            Vector outer = getPointOnCurve(t, curve+1);
+                if (!displayListTestTrackSetUp) {
+                    // Reserve the indices for the display lists, one for each curve
+                    displayListTestTrack = gl.glGenLists(4);
+                    // Compile the display lists for the test track
+                    for (int curve = 0; curve < 4; curve++) {
+                        // Start compiling the display lists
+                        gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
+                        // Use a triangle strip and create a closed ring out of triangles
+                        gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                            for (int i = 0; i < SEGMENTS; i++) {
+                                // SEGMENTS times: add a vertex describing an inner and outer point of this curve
+                                double t = i/((double) SEGMENTS);
+                                Vector inner = getPointOnCurve(t, curve);
+                                Vector outer = getPointOnCurve(t, curve+1);
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            }
+                            // Add the first inner and outer points of this curve again to close the ring
+                            Vector inner = getPointOnCurve(0, curve);
+                            Vector outer = getPointOnCurve(0, curve+1);
                             gl.glVertex3d(inner.x(), inner.y(), inner.z());
                             gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                        }
-                        Vector inner = getPointOnCurve(0, curve);
-                        Vector outer = getPointOnCurve(0, curve+1);
-                        gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                        gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                    gl.glEnd();
+                        // Finish compiling the display list
+                        gl.glEnd();
+                        gl.glEndList();
+                    }
+                    // Set the displayListTestTrackSetUp variable to true so the display lists won't be created again
+                    displayListTestTrackSetUp = true;
                 }
-
+                // Execute the display lists for the test track
+                for (int curve = 0; curve < 4; curve++) {
+                    // Pass the material for this curve to OpenGL
+                    materials[curve].setSurfaceColor(gl);
+                    // Call the display list
+                    gl.glCallList(displayListTestTrack+curve);
+                }
+                
             // The O-track is selected
             } else if (1 == trackNr) {
                 // code goes here ...
