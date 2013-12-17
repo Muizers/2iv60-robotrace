@@ -826,6 +826,21 @@ public class RobotRace extends Base {
 
             }
         }
+        
+        /**
+         * Returns the position of the (@code curve)'th outermost curve at 0 <= (@code t) <= 1.<br>
+         * 0 = the innermost curve
+         * 5 = the outermost curve
+         */
+        public Vector getPointOnCurve(double t, int curve) {
+            Vector point = getPoint(t);
+            if (curve == 0) {
+                return point;
+            }
+            Vector tangent = getTangent(t);
+            Vector normal = tangent.cross(Vector.Z).normalized();
+            return point.add(normal.scale(curve));
+        }
 
         /**
          * Returns the position of the curve at 0 <= {@code t} <= 1.
