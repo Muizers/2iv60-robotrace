@@ -779,6 +779,14 @@ public class RobotRace extends Base {
      * Implementation of a race track that is made from Bezier segments.
      */
     private class RaceTrack {
+        
+        /** Material of tracks, from innermost to outermost. */
+        private Material[] materials = new Material[] {
+            Material.GOLD,
+            Material.ORANGE,
+            Material.SILVER,
+            Material.WOOD
+        };
 
         /** Array with control points for the O-track. */
         private Vector[] controlPointsOTrack;
@@ -791,6 +799,9 @@ public class RobotRace extends Base {
 
         /** Array with control points for the custom track. */
         private Vector[] controlPointsCustomTrack;
+        
+        /** Number of segments to be used to draw the race tracks. */
+        private int SEGMENTS = 100;
 
         /**
          * Constructs the race track, sets up display lists.
@@ -806,7 +817,22 @@ public class RobotRace extends Base {
 
             // The test track is selected
             if (0 == trackNr) {
-                // code goes here ...
+                for (int curve = 0; curve < 4; curve++) {
+                    materials[curve].setSurfaceColor(gl);
+                    gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                        for (int i = 0; i < SEGMENTS; i++) {
+                            double t = i/((double) SEGMENTS);
+                            Vector inner = getPointOnCurve(t, curve);
+                            Vector outer = getPointOnCurve(t, curve+1);
+                            gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                            gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                        }
+                        Vector inner = getPointOnCurve(0, curve);
+                        Vector outer = getPointOnCurve(0, curve+1);
+                        gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                        gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                    gl.glEnd();
+                }
 
             // The O-track is selected
             } else if (1 == trackNr) {
