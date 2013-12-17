@@ -831,14 +831,26 @@ public class RobotRace extends Base {
          * Returns the position of the curve at 0 <= {@code t} <= 1.
          */
         public Vector getPoint(double t) {
-            return Vector.O; // <- code goes here
+            // / 10 * cos(2*pi*t) \
+            // | 14 * sin(2*pi*t) |
+            // \ 1                /
+
+            return new Vector(10 * Math.cos(2 * Math.PI * t),
+                              14 * Math.sin(2 * Math.PI * t),
+                              1);
         }
 
         /**
          * Returns the tangent of the curve at 0 <= {@code t} <= 1.
          */
         public Vector getTangent(double t) {
-            return Vector.O; // <- code goes here
+            // / 10 * cos(2*pi*t) \
+            // | 14 * sin(2*pi*t) |
+            // \ 1                /
+
+            return new Vector(-10 * Math.sin(2 * Math.PI * t),
+                              14 * Math.cos(2 * Math.PI * t),
+                              0);
         }
 
     }
