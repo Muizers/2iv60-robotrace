@@ -240,19 +240,19 @@ public class RobotRace extends Base {
         gl.glTranslated(-1.05, 0, 0);
 
         // Draw the robots
-        robots[0].draw(gs.showStick);
+        robots[0].draw(gs.showStick, gs.tAnim);
 
         gl.glTranslated(0.7, 0, 0);
 
-        robots[1].draw(gs.showStick);
+        robots[1].draw(gs.showStick, gs.tAnim);
 
         gl.glTranslated(0.7, 0, 0);
 
-        robots[2].draw(gs.showStick);
+        robots[2].draw(gs.showStick, gs.tAnim);
 
         gl.glTranslated(0.7, 0, 0);
 
-        robots[3].draw(gs.showStick);
+        robots[3].draw(gs.showStick, gs.tAnim);
 
         // Draw race track
         raceTrack.draw(gs.trackNr);
@@ -603,8 +603,10 @@ public class RobotRace extends Base {
 
         /**
          * Draws this robot (as a {@code stickfigure} if specified).
+         *
+         * @param aTime Time for animation, in seconds
          */
-        public void draw(boolean stickFigure) {
+        public void draw(boolean stickFigure, float aTime) {
             // set the correct material properties
             material.setSurfaceColor(gl);
 
