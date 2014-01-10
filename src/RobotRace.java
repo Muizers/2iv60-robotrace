@@ -847,7 +847,13 @@ public class RobotRace extends Base {
          * on the first person mode.
          */
         private void setFirstPersonMode() {
-            // code goes here ...
+            // TODO: Check direction of robot
+            // eye is the robot's eye position
+            eye = calculateCurrentRobotPosition().add(new Vector(0, 0, 1));
+            up = Vector.Z;
+
+            // center is in the direction of eye
+            center = eye.add(new Vector(0, 10, 0));
         }
 
     }
