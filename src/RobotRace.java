@@ -223,14 +223,22 @@ public class RobotRace extends Base {
         // Draw the robots
         
             for (int id = 0; id < 4; id++) {
+                gl.glPushMatrix();
                 // get the robot's position
                 Vector position = robots[id].getPosition(gs.tAnim);
                 // translate to the position
                 gl.glTranslated(position.x(), position.y(), position.z());
+
+                Vector tangent = robots[id].getPositionTangent(gs.tAnim);
+
+                double angle = Math.toDegrees(Math.atan2(-tangent.x(), tangent.y()));
+
+                gl.glRotated(angle, 0, 0, 1);
+
                 // draw the robot
                 robots[id].draw(gs.showStick, gs.tAnim);
-                // translate back
-                gl.glTranslated(-position.x(), -position.y(), -position.z());
+
+                gl.glPopMatrix();
             }
 
         // Draw race track
