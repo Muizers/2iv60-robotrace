@@ -82,19 +82,19 @@ public class RobotRace extends Base {
         robots = new Robot[4];
 
         // Initialize robot 0
-        robots[0] = new Robot(Material.GOLD
+        robots[0] = new Robot(0, Material.GOLD
             /* add other parameters that characterize this robot */);
 
         // Initialize robot 1
-        robots[1] = new Robot(Material.SILVER
+        robots[1] = new Robot(1, Material.SILVER
             /* add other parameters that characterize this robot */);
 
         // Initialize robot 2
-        robots[2] = new Robot(Material.WOOD
+        robots[2] = new Robot(2, Material.WOOD
             /* add other parameters that characterize this robot */);
 
         // Initialize robot 3
-        robots[3] = new Robot(Material.ORANGE
+        robots[3] = new Robot(3, Material.ORANGE
             /* add other parameters that characterize this robot */);
 
         // Initialize the camera
@@ -240,19 +240,17 @@ public class RobotRace extends Base {
         gl.glTranslated(-1.05, 0, 0);
 
         // Draw the robots
-        robots[0].draw(gs.showStick, gs.tAnim);
-
-        gl.glTranslated(0.7, 0, 0);
-
-        robots[1].draw(gs.showStick, gs.tAnim);
-
-        gl.glTranslated(0.7, 0, 0);
-
-        robots[2].draw(gs.showStick, gs.tAnim);
-
-        gl.glTranslated(0.7, 0, 0);
-
-        robots[3].draw(gs.showStick, gs.tAnim);
+        
+            for (int id = 0; id < 4; id++) {
+                // get the robot's position
+                Vector position = robots[id].getPosition(gs.tAnim);
+                // translate to the position
+                gl.glTranslated(position.x(), position.y(), position.z());
+                // draw the robot
+                robots[id].draw(gs.showStick, gs.tAnim);
+                // translate back
+                gl.glTranslated(-position.x(), -position.y(), -position.z());
+            }
 
         // Draw race track
         raceTrack.draw(gs.trackNr);
@@ -532,13 +530,22 @@ public class RobotRace extends Base {
      */
     private class Robot {
         
-        /** Distance that the robot travelled on the track. */
-        private double distance;
+        /** The identifier of this robot. In the range [0,3]. */
+        private int id;
+        
+        /** Distance that the robot travelled on the track.
+         * This distance is taken in the range [0,1).
+         */
+        private double distance = 0;
         
         /** Current speed of the robot in units/seconds. */
-        private double speed;
+        private double speed = 0;
         
+        /** The last time the robot position was updated. */
+        private double lastATime = 0;
         
+        /** The position this robot had when last updated. */
+        private Vector lastCalculatedPosition = null;
 
         // the position of a body part is described as the front bottom
         // coordinate. Since the robot is mostly two-dimensional in starting
@@ -606,27 +613,64 @@ public class RobotRace extends Base {
         public final static double R_EYE_POS_Y = 0.5;
         public final static double R_EYE_POS_Z = 0.8;
 
-
-
         /** The material from which this robot is built. */
         private final Material material;
 
         /**
          * Constructs the robot with initial parameters.
          */
-        public Robot(Material material
-            /* add other parameters that characterize this robot */) {
+        public Robot(int id, Material material) {
+            this.id = id;
             this.material = material;
-
-            // code goes here ...
+        }
+        
+        /**
+         * Returns the last calculated position of this robot.
+         */
+        public Vector getLastCalculatedPosition() {
+            return lastCalculatedPosition;
+        }
+        
+        /**
+         * Calculate the new position of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        public void updatePosition(float aTime) {
+            distance += (aTime-lastATime)*speed; // Increment the distance by the time passed times the speed
+            distance = distance-Math.floor(distance); // Make sure the distance is still in the range [0,1)
+            lastATime = aTime; // Update the last aTime
+            lastCalculatedPosition = raceTrack.getPointOnCurve(distance, id+0.5); // update the position Vector object
+        }
+        
+        /**
+         * Returns the new position of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        public Vector getPosition(float aTime) {
+            updatePosition(aTime);
+            return lastCalculatedPosition;
+        }
+        
+        /**
+         * Changes the speed of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        
+        public void setSpeed(double speed, float aTime) {
+            updatePosition(aTime); // update the position with the old speed
+            this.speed = speed; // update the speed
         }
 
         /**
          * Draws this robot (as a {@code stickfigure} if specified).
          *
-         * @param aTime Time for animation, in seconds
+         * @param aTime Time for animation and movement, in seconds
          */
         public void draw(boolean stickFigure, float aTime) {
+            
             // set the correct material properties
             material.setSurfaceColor(gl);
 
@@ -714,6 +758,7 @@ public class RobotRace extends Base {
             drawCone(new Vector(EYE_DIR_X, EYE_DIR_Y, EYE_DIR_Z),
                      EYE_BASE, EYE_HEIGHT, EYE_SLICES, EYE_STACKS, stickFigure);
             gl.glPopMatrix();
+            
         }
     }
 
@@ -958,8 +1003,9 @@ public class RobotRace extends Base {
          * Returns the position of the (@code curve)'th outermost curve at 0 <= (@code t) <= 1.<br>
          * 0 = the innermost curve
          * 5 = the outermost curve
+         * The curve parameter is a double to support getting the middle position of a track.
          */
-        public Vector getPointOnCurve(double t, int curve) {
+        public Vector getPointOnCurve(double t, double curve) {
             Vector point = getPoint(t);
             if (curve == 0) {
                 return point;
