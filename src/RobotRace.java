@@ -151,6 +151,11 @@ public class RobotRace extends Base {
 
         // normalize
         gl.glEnable(GL_NORMALIZE);
+
+        robots[0].setSpeed(0.120, gs.tAnim);
+        robots[1].setSpeed(0.125, gs.tAnim);
+        robots[2].setSpeed(0.130, gs.tAnim);
+        robots[3].setSpeed(0.135, gs.tAnim);
     }
 
     /**
@@ -753,12 +758,15 @@ public class RobotRace extends Base {
         public Vector up = Vector.Z;
 
         /**
+         * Robot to show in Helicopter and MotorCycle modes.
+         */
+        public int robotNum;
+
+        /**
          * Updates the camera viewpoint and direction based on the
          * selected camera mode.
          */
         public void update(int mode) {
-            robots[0].toString();
-
             // Helicopter mode
             if (1 == mode) {
                 setHelicopterMode();
@@ -801,12 +809,22 @@ public class RobotRace extends Base {
          * on the helicopter mode.
          */
         private void setHelicopterMode() {
-            // code goes here ...
+            // center is the robot position
+            center = robots[robotNum].getPosition(gs.tAnim);
+            center = center.add(Vector.X.scale(-1));
+            up = Vector.Y;
+
+            eye = center;
+            eye = eye.add(new Vector(0, 0, 100));
         }
 
         /**
          * Computes {@code eye}, {@code center}, and {@code up}, based
          * on the motorcycle mode.
+         *
+         * We take the tangent of the current robot position on the
+         * track, and calculate a orthogonal vector parallel with the
+         * XOY plane. On this vector, the camera eye is placed.
          */
         private void setMotorCycleMode() {
             // code goes here ...
