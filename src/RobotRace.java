@@ -832,10 +832,26 @@ public class RobotRace extends Base {
         public int robotNum;
 
         /**
+         * Last time.
+         */
+        private int lastTime = 0;
+
+        /**
+         * Last robot change time.
+         */
+        private int lastRobotTime = 0;
+
+        /**
+         * Mode.
+         */
+        private int mode = 0;
+
+        /**
          * Updates the camera viewpoint and direction based on the
          * selected camera mode.
          */
         public void update(int mode) {
+            setRobotNum();
             // Helicopter mode
             if (1 == mode) {
                 setHelicopterMode();
@@ -850,8 +866,7 @@ public class RobotRace extends Base {
 
             // Auto mode
             } else if (4 == mode) {
-                // code goes here...
-
+                setAutoMode();
             // Default mode
             } else {
                 setDefaultMode();
@@ -925,7 +940,6 @@ public class RobotRace extends Base {
          * on the first person mode.
          */
         private void setFirstPersonMode() {
-            // TODO: Change the camera to the head
             // eye is the robot's eye position
             eye = calculateCurrentRobotHeadPosition();
             up = Vector.Z;
@@ -936,6 +950,41 @@ public class RobotRace extends Base {
             center = eye.add(center);
         }
 
+        /**
+         * Set the auto mode.
+         */
+        private void setAutoMode()
+        {
+            if (lastTime + 10 <= Math.round(gs.tAnim)) {
+                lastTime = Math.round(gs.tAnim);
+                mode = rand.nextInt(4);
+            }
+            switch (mode) {
+                case 0:
+                    setDefaultMode();
+                    break;
+                case 1:
+                    setHelicopterMode();
+                    break;
+                case 2:
+                    setMotorCycleMode();
+                    break;
+                case 3:
+                    setFirstPersonMode();
+                    break;
+            }
+        }
+
+        /**
+         * Set robot number.
+         */
+        public void setRobotNum()
+        {
+            if (lastRobotTime + 5 <= Math.round(gs.tAnim)) {
+                lastRobotTime = Math.round(gs.tAnim);
+                robotNum = rand.nextInt(4);
+            }
+        }
     }
 
     /**
