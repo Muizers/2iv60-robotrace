@@ -804,18 +804,24 @@ public class RobotRace extends Base {
             eye.add(center);
         }
 
+        private Vector calculateCurrentRobotPosition() {
+            Vector pos = robots[robotNum].getPosition(gs.tAnim);
+            // for some reason, the robot is shifted slightly
+            return pos.add(Vector.X.scale(-1));
+        }
+
         /**
          * Computes {@code eye}, {@code center}, and {@code up}, based
          * on the helicopter mode.
          */
         private void setHelicopterMode() {
+            // TODO: Check direction of robot
             // center is the robot position
-            center = robots[robotNum].getPosition(gs.tAnim);
-            center = center.add(Vector.X.scale(-1));
+            center = calculateCurrentRobotPosition();
             up = Vector.Y;
 
             eye = center;
-            eye = eye.add(new Vector(0, 0, 100));
+            eye = eye.add(new Vector(0, 0, 50));
         }
 
         /**
@@ -827,7 +833,13 @@ public class RobotRace extends Base {
          * XOY plane. On this vector, the camera eye is placed.
          */
         private void setMotorCycleMode() {
-            // code goes here ...
+            // TODO: Check direction of robot
+            // center is the robot position
+            center = calculateCurrentRobotPosition();
+            up = Vector.Z;
+
+            eye = center;
+            eye = eye.add(new Vector(20, 0, 1));
         }
 
         /**
