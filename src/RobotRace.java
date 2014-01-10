@@ -380,7 +380,6 @@ public class RobotRace extends Base {
 
         /**
          * Gold material properties.
-         * Modify the default values to make it look like gold.
          */
         GOLD (
             new float[] {0.24725f, 0.1995f, 0.0745f, 1.0f},
@@ -389,7 +388,6 @@ public class RobotRace extends Base {
 
         /**
          * Silver material properties.
-         * Modify the default values to make it look like silver.
          */
         SILVER (
             new float[] {0.19225f, 0.19225f, 0.19225f, 1.0f},
@@ -398,7 +396,6 @@ public class RobotRace extends Base {
 
         /**
          * Wood material properties.
-         * Modify the default values to make it look like wood.
          */
         WOOD (
             new float[] {0.0f, 0.0f, 0.0f, 1.0f},
@@ -407,12 +404,27 @@ public class RobotRace extends Base {
 
         /**
          * Orange material properties.
-         * Modify the default values to make it look like orange.
          */
         ORANGE (
             new float[] {0.0f, 0.0f, 0.0f, 1.0f},
             new float[] {0.9f, 0.4f, 0.0f, 1.0f},
-            new float[] {0.0f, 0.0f, 0.0f, 1.0f});
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
+        
+        /**
+         * Black material properties.
+         */
+        BLACK (
+        new float[] {0.0f, 0.0f, 0.0f, 1.0f},
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f},
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
+        
+        /**
+         * White material properties.
+         */
+        WHITE (
+        new float[] {1.0f, 1.0f, 1.0f, 1.0f},
+            new float[] {1.0f, 1.0f, 1.0f, 1.0f},
+            new float[] {1.0f, 1.0f, 1.0f, 1.0f});
 
         float[] ambient;
 
@@ -519,6 +531,14 @@ public class RobotRace extends Base {
      * the front of its front foot is parallel with the (local) y-axis.
      */
     private class Robot {
+        
+        /** Distance that the robot travelled on the track. */
+        private double distance;
+        
+        /** Current speed of the robot in units/seconds. */
+        private double speed;
+        
+        
 
         // the position of a body part is described as the front bottom
         // coordinate. Since the robot is mostly two-dimensional in starting
@@ -786,6 +806,12 @@ public class RobotRace extends Base {
             Material.SILVER,
             Material.WOOD
         };
+        
+        /** Material of the start line. */
+        private Material startLineMaterial = Material.WHITE;
+        
+        /** Number of display lists to create per track. */
+        private int displayListPerTrackAmount = 5;
 
         /** Array with control points for the O-track. */
         private Vector[] controlPointsOTrack;
@@ -848,40 +874,66 @@ public class RobotRace extends Base {
             if (0 == trackNr) {
                 if (!displayListTestTrackSetUp) {
                     // Reserve the indices for the display lists, one for each curve
-                    displayListTestTrack = gl.glGenLists(4);
-                    // Compile the display lists for the test track
-                    for (int curve = 0; curve < 4; curve++) {
-                        // Start compiling the display lists
-                        gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
-                        // Use a triangle strip and create a closed ring out of triangles
-                        gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                            for (int i = 0; i < SEGMENTS; i++) {
-                                // SEGMENTS times: add a vertex describing an inner and outer point of this curve
-                                double t = i/((double) SEGMENTS);
-                                Vector inner = getPointOnCurve(t, curve);
-                                Vector outer = getPointOnCurve(t, curve+1);
+                    displayListTestTrack = gl.glGenLists(displayListPerTrackAmount);
+                    // Compile the display lists for the 4 curves
+                        for (int curve = 0; curve < 4; curve++) {
+                            // Start compiling the display lists
+                            gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
+                            // Use a triangle strip and create a closed ring out of triangles
+                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                for (int i = 0; i < SEGMENTS; i++) {
+                                    // SEGMENTS times: add a vertex describing an inner and outer point of this curve
+                                    double t = i/((double) SEGMENTS);
+                                    Vector inner = getPointOnCurve(t, curve);
+                                    Vector outer = getPointOnCurve(t, curve+1);
+                                    // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                                    gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                    gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                                }
+                                // Add the first inner and outer points of this curve again to close the ring
+                                Vector inner = getPointOnCurve(0, curve);
+                                Vector outer = getPointOnCurve(0, curve+1);
                                 gl.glVertex3d(inner.x(), inner.y(), inner.z());
                                 gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                            }
-                            // Add the first inner and outer points of this curve again to close the ring
-                            Vector inner = getPointOnCurve(0, curve);
-                            Vector outer = getPointOnCurve(0, curve+1);
-                            gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                            gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            // Finish the triangle strip
+                            gl.glEnd();
+                            // Finish compiling the display list
+                            gl.glEndList();
+                        }
+                    // Compile the display list for the start line
+                        gl.glNewList(displayListTestTrack+4, GL_COMPILE);
+                        // Draw the start line
+                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                // Add the first inner and outer points as points on the startline on this piece of the track
+                                Vector inner = getPointOnCurve(0, 0).add(Vector.Z.scale(0.0001));
+                                Vector outer = getPointOnCurve(0, 4).add(Vector.Z.scale(0.0001));
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                                // Add an inner and outer point just past the initial points as the end of the startline in the triangle strip
+                                inner = getPointOnCurve(0.001, 0).add(Vector.Z.scale(0.0001));
+                                outer = getPointOnCurve(0.001, 4).add(Vector.Z.scale(0.0001));
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            // Finish the start line
+                            gl.glEnd();
                         // Finish compiling the display list
-                        gl.glEnd();
                         gl.glEndList();
-                    }
                     // Set the displayListTestTrackSetUp variable to true so the display lists won't be created again
                     displayListTestTrackSetUp = true;
                 }
                 // Execute the display lists for the test track
-                for (int curve = 0; curve < 4; curve++) {
-                    // Pass the material for this curve to OpenGL
-                    materials[curve].setSurfaceColor(gl);
-                    // Call the display list
-                    gl.glCallList(displayListTestTrack+curve);
-                }
+                    // Execute the display lists of the curves
+                        for (int curve = 0; curve < 4; curve++) {
+                            // Pass the material for this curve to OpenGL
+                            materials[curve].setSurfaceColor(gl);
+                            // Call the display list
+                            gl.glCallList(displayListTestTrack+curve);
+                        }
+                    // Execute the display lists of the start line
+                        // Pass the material for this
+                        startLineMaterial.setSurfaceColor(gl);
+                        // Call the display list
+                        gl.glCallList(displayListTestTrack+4);
                 
             // The O-track is selected
             } else if (1 == trackNr) {
