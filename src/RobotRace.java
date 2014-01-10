@@ -856,7 +856,6 @@ public class RobotRace extends Base {
          * XOY plane. On this vector, the camera eye is placed.
          */
         private void setMotorCycleMode() {
-            // TODO: Check direction of robot
             // center is the robot position
             center = calculateCurrentRobotPosition();
             up = Vector.Z;
@@ -873,13 +872,15 @@ public class RobotRace extends Base {
          * on the first person mode.
          */
         private void setFirstPersonMode() {
-            // TODO: Check direction of robot
+            // TODO: Change the camera to the head
             // eye is the robot's eye position
             eye = calculateCurrentRobotPosition().add(new Vector(0, 0, 1));
             up = Vector.Z;
 
-            // center is in the direction of eye
-            center = eye.add(new Vector(0, 10, 0));
+            // center is in the direction of the tangent
+            center = calculateCurrentRobotPositionTangent();
+            center.normalized().scale(10);
+            center = eye.add(center);
         }
 
     }
