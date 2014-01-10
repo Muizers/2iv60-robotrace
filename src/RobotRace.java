@@ -4,6 +4,7 @@ import static javax.media.opengl.GL2.*;
 import robotrace.Base;
 import robotrace.Vector;
 import java.nio.FloatBuffer;
+import java.util.Random;
 
 /**
  * Handles all of the RobotRace graphics functionality,
@@ -73,6 +74,16 @@ public class RobotRace extends Base {
     private final Terrain terrain;
 
     /**
+     * Last time
+     */
+    private int lastTime = 0;
+
+    /**
+     * Random source.
+     */
+    private Random rand;
+
+    /**
      * Constructs this robot race by initializing robots,
      * camera, track, and terrain.
      */
@@ -105,6 +116,8 @@ public class RobotRace extends Base {
 
         // Initialize the terrain
         terrain = new Terrain();
+
+        rand = new Random();
     }
 
     /**
@@ -151,11 +164,6 @@ public class RobotRace extends Base {
 
         // normalize
         gl.glEnable(GL_NORMALIZE);
-
-        robots[0].setSpeed(0.120, gs.tAnim);
-        robots[1].setSpeed(0.125, gs.tAnim);
-        robots[2].setSpeed(0.130, gs.tAnim);
-        robots[3].setSpeed(0.135, gs.tAnim);
     }
 
     /**
@@ -220,6 +228,8 @@ public class RobotRace extends Base {
 
         gl.glTranslated(-1.05, 0, 0);
 
+        determineSpeed();
+
         // Draw the robots
         
             for (int id = 0; id < 4; id++) {
@@ -229,10 +239,9 @@ public class RobotRace extends Base {
                 // translate to the position
                 gl.glTranslated(position.x(), position.y(), position.z());
 
+                // rotate the robot
                 Vector tangent = robots[id].getPositionTangent(gs.tAnim);
-
                 double angle = Math.toDegrees(Math.atan2(-tangent.x(), tangent.y()));
-
                 gl.glRotated(angle, 0, 0, 1);
 
                 // draw the robot
@@ -262,6 +271,19 @@ public class RobotRace extends Base {
 
         // Translated, rotated, scaled box.
         glut.glutWireCube(1f);*/
+    }
+
+    /**
+     * Determine speed.
+     */
+    public void determineSpeed()
+    {
+        if (Math.round(gs.tAnim) != lastTime) {
+            for (int i = 0; i < 4; i++) {
+                robots[i].setSpeed(0.1 + rand.nextDouble() * 0.1, gs.tAnim);
+            }
+            lastTime = Math.round(gs.tAnim);
+        }
     }
 
     /**
@@ -678,8 +700,7 @@ public class RobotRace extends Base {
          */
         public Vector getHeadPosition(float aTime) {
             Vector position = getPosition(aTime);
-            position = position.add(new Vector(HEAD_POS_X, HEAD_POS_Y, HEAD_POS_Z));
-            return position.add(new Vector(HEAD_HEIGHT / 2, 0, 0));
+            return position.add(new Vector(0, 0, HEAD_POS_Z + HEAD_HEIGHT / 2));
         }
         
         /**
