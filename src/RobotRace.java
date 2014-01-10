@@ -406,6 +406,14 @@ public class RobotRace extends Base {
             new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
         
         /**
+         * Gray material properties.
+         */
+        GRAY (
+            new float[] {0.08f, 0.08f, 0.08f, 1.0f},
+            new float[] {0.50754f, 0.50754f, 0.50754f, 1.0f},
+            new float[] {0.508273f, 0.508273f, 0.508273f, 1.0f}),
+        
+        /**
          * White material properties.
          */
         WHITE (
@@ -917,13 +925,16 @@ public class RobotRace extends Base {
         /** Material of tracks, from innermost to outermost. */
         private Material[] materials = new Material[] {
             Material.GOLD,
-            Material.ORANGE,
             Material.SILVER,
-            Material.WOOD
+            Material.WOOD,
+            Material.ORANGE
         };
         
         /** Material of the start line. */
         private Material startLineMaterial = Material.WHITE;
+        
+        /** Material of the track edge. */
+        private Material trackEdgeMaterial = Material.GRAY;
         
         /** Number of display lists to create per track. */
         private int displayListPerTrackAmount = 7;
@@ -1037,7 +1048,7 @@ public class RobotRace extends Base {
                         gl.glEndList();
                     // Compile the display lists for the track edges
                         for (boolean insideOrOutside : new boolean[] {true, false}) {
-                            gl.glNewList(displayListTestTrack+(insideOrOutside?1:0), GL_COMPILE);
+                            gl.glNewList(displayListTestTrack+5+(insideOrOutside?1:0), GL_COMPILE);
                                 // Use a triangle strip and create a closed ring out of triangles
                                 gl.glBegin(GL2.GL_TRIANGLE_STRIP);
                                     for (int i = 0; i < SEGMENTS; i++) {
@@ -1072,10 +1083,17 @@ public class RobotRace extends Base {
                             gl.glCallList(displayListTestTrack+curve);
                         }
                     // Execute the display lists of the start line
-                        // Pass the material for this
+                        // Pass the material for the start line
                         startLineMaterial.setSurfaceColor(gl);
                         // Call the display list
                         gl.glCallList(displayListTestTrack+4);
+                    // Execute the display lists of the track edges
+                        // Pass the material for the track edges
+                        trackEdgeMaterial.setSurfaceColor(gl);
+                        for (boolean insideOrOutside : new boolean [] {true, false}) {
+                            // Call the display list
+                            gl.glCallList(displayListTestTrack+5+(insideOrOutside?1:0));
+                        }
                 
             // The O-track is selected
             } else if (1 == trackNr) {
