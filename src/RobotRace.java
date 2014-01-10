@@ -151,6 +151,11 @@ public class RobotRace extends Base {
 
         // normalize
         gl.glEnable(GL_NORMALIZE);
+
+        robots[0].setSpeed(0.120, gs.tAnim);
+        robots[1].setSpeed(0.125, gs.tAnim);
+        robots[2].setSpeed(0.130, gs.tAnim);
+        robots[3].setSpeed(0.135, gs.tAnim);
     }
 
     /**
@@ -165,26 +170,6 @@ public class RobotRace extends Base {
         gl.glMatrixMode(GL_PROJECTION);
         gl.glLoadIdentity();
 
-        // derive position of E
-        // first we derive the vector V from the polar coordinates
-        //camera.eye = new Vector(gs.vDist * Math.sin(gs.theta) * Math.cos(gs.phi),
-                                //gs.vDist * Math.sin(gs.theta) * Math.sin(gs.phi),
-                                //gs.vDist * Math.cos(gs.theta));
-        camera.eye = new Vector(gs.vDist * Math.cos(gs.theta) * Math.cos(gs.phi),
-                                gs.vDist * Math.sin(gs.theta) * Math.cos(gs.phi),
-                                gs.vDist * Math.sin(gs.phi));
-        camera.eye = camera.eye.add(gs.cnt);
-
-        // camera center
-        camera.center = gs.cnt;
-
-        // for now, leave up as Z axis
-        camera.up = Vector.Z;
-
-        // znear = 0.1*gs.vDist
-        // zfar = 10.0*gs.vDist
-        //glu.gluPerspective(40, (float)gs.w / (float)gs.h, 0.1, 100);
-
         // calculate field of view
         // arctan((vWidth / 2) / (zNear+zFar) / 2) * 2
         double zNear = 0.1 * gs.vDist;
@@ -193,11 +178,7 @@ public class RobotRace extends Base {
         fovy = Math.toDegrees(fovy);
 
         // Set the perspective.
-        // Modify this to meet the requirements in the assignment.
         glu.gluPerspective(fovy, (float)gs.w / (float)gs.h, zNear, zFar);
-
-        // tan(alpha) = (gs.vWidth / 2) / gs.vDist
-        // alpha = arctan((gs.vWidth / 2) / gs.vDist)
 
         // Set camera.
         gl.glMatrixMode(GL_MODELVIEW);
@@ -798,12 +779,15 @@ public class RobotRace extends Base {
         public Vector up = Vector.Z;
 
         /**
+         * Robot to show in Helicopter and MotorCycle modes.
+         */
+        public int robotNum;
+
+        /**
          * Updates the camera viewpoint and direction based on the
          * selected camera mode.
          */
         public void update(int mode) {
-            robots[0].toString();
-
             // Helicopter mode
             if (1 == mode) {
                 setHelicopterMode();
@@ -831,7 +815,20 @@ public class RobotRace extends Base {
          * on the camera's default mode.
          */
         private void setDefaultMode() {
-            // code goes here ...
+            center = gs.cnt;
+            up = Vector.Z;
+            // derive position of the camera eye
+            // first we derive the vector V from the polar coordinates
+            eye = new Vector(gs.vDist * Math.cos(gs.theta) * Math.cos(gs.phi),
+                             gs.vDist * Math.sin(gs.theta) * Math.cos(gs.phi),
+                             gs.vDist * Math.sin(gs.phi));
+            eye.add(center);
+        }
+
+        private Vector calculateCurrentRobotPosition() {
+            Vector pos = robots[robotNum].getPosition(gs.tAnim);
+            // for some reason, the robot is shifted slightly
+            return pos.add(Vector.X.scale(-1));
         }
 
         /**
@@ -839,15 +836,31 @@ public class RobotRace extends Base {
          * on the helicopter mode.
          */
         private void setHelicopterMode() {
-            // code goes here ...
+            // TODO: Check direction of robot
+            // center is the robot position
+            center = calculateCurrentRobotPosition();
+            up = Vector.Y;
+
+            eye = center;
+            eye = eye.add(new Vector(0, 0, 50));
         }
 
         /**
          * Computes {@code eye}, {@code center}, and {@code up}, based
          * on the motorcycle mode.
+         *
+         * We take the tangent of the current robot position on the
+         * track, and calculate a orthogonal vector parallel with the
+         * XOY plane. On this vector, the camera eye is placed.
          */
         private void setMotorCycleMode() {
-            // code goes here ...
+            // TODO: Check direction of robot
+            // center is the robot position
+            center = calculateCurrentRobotPosition();
+            up = Vector.Z;
+
+            eye = center;
+            eye = eye.add(new Vector(20, 0, 1));
         }
 
         /**
@@ -855,7 +868,13 @@ public class RobotRace extends Base {
          * on the first person mode.
          */
         private void setFirstPersonMode() {
-            // code goes here ...
+            // TODO: Check direction of robot
+            // eye is the robot's eye position
+            eye = calculateCurrentRobotPosition().add(new Vector(0, 0, 1));
+            up = Vector.Z;
+
+            // center is in the direction of eye
+            center = eye.add(new Vector(0, 10, 0));
         }
 
     }
