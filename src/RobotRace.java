@@ -82,19 +82,19 @@ public class RobotRace extends Base {
         robots = new Robot[4];
 
         // Initialize robot 0
-        robots[0] = new Robot(Material.GOLD
+        robots[0] = new Robot(0, Material.GOLD
             /* add other parameters that characterize this robot */);
 
         // Initialize robot 1
-        robots[1] = new Robot(Material.SILVER
+        robots[1] = new Robot(1, Material.SILVER
             /* add other parameters that characterize this robot */);
 
         // Initialize robot 2
-        robots[2] = new Robot(Material.WOOD
+        robots[2] = new Robot(2, Material.WOOD
             /* add other parameters that characterize this robot */);
 
         // Initialize robot 3
-        robots[3] = new Robot(Material.ORANGE
+        robots[3] = new Robot(3, Material.ORANGE
             /* add other parameters that characterize this robot */);
 
         // Initialize the camera
@@ -216,19 +216,17 @@ public class RobotRace extends Base {
         gl.glTranslated(-1.05, 0, 0);
 
         // Draw the robots
-        robots[0].draw(gs.showStick, gs.tAnim);
-
-        gl.glTranslated(0.7, 0, 0);
-
-        robots[1].draw(gs.showStick, gs.tAnim);
-
-        gl.glTranslated(0.7, 0, 0);
-
-        robots[2].draw(gs.showStick, gs.tAnim);
-
-        gl.glTranslated(0.7, 0, 0);
-
-        robots[3].draw(gs.showStick, gs.tAnim);
+        
+            for (int id = 0; id < 4; id++) {
+                // get the robot's position
+                Vector position = robots[id].getPosition(gs.tAnim);
+                // translate to the position
+                gl.glTranslated(position.x(), position.y(), position.z());
+                // draw the robot
+                robots[id].draw(gs.showStick, gs.tAnim);
+                // translate back
+                gl.glTranslated(-position.x(), -position.y(), -position.z());
+            }
 
         // Draw race track
         raceTrack.draw(gs.trackNr);
@@ -356,7 +354,6 @@ public class RobotRace extends Base {
 
         /**
          * Gold material properties.
-         * Modify the default values to make it look like gold.
          */
         GOLD (
             new float[] {0.24725f, 0.1995f, 0.0745f, 1.0f},
@@ -365,7 +362,6 @@ public class RobotRace extends Base {
 
         /**
          * Silver material properties.
-         * Modify the default values to make it look like silver.
          */
         SILVER (
             new float[] {0.19225f, 0.19225f, 0.19225f, 1.0f},
@@ -374,7 +370,6 @@ public class RobotRace extends Base {
 
         /**
          * Wood material properties.
-         * Modify the default values to make it look like wood.
          */
         WOOD (
             new float[] {0.0f, 0.0f, 0.0f, 1.0f},
@@ -383,12 +378,27 @@ public class RobotRace extends Base {
 
         /**
          * Orange material properties.
-         * Modify the default values to make it look like orange.
          */
         ORANGE (
             new float[] {0.0f, 0.0f, 0.0f, 1.0f},
             new float[] {0.9f, 0.4f, 0.0f, 1.0f},
-            new float[] {0.0f, 0.0f, 0.0f, 1.0f});
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
+        
+        /**
+         * Black material properties.
+         */
+        BLACK (
+        new float[] {0.0f, 0.0f, 0.0f, 1.0f},
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f},
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
+        
+        /**
+         * White material properties.
+         */
+        WHITE (
+        new float[] {1.0f, 1.0f, 1.0f, 1.0f},
+            new float[] {1.0f, 1.0f, 1.0f, 1.0f},
+            new float[] {1.0f, 1.0f, 1.0f, 1.0f});
 
         float[] ambient;
 
@@ -495,6 +505,23 @@ public class RobotRace extends Base {
      * the front of its front foot is parallel with the (local) y-axis.
      */
     private class Robot {
+        
+        /** The identifier of this robot. In the range [0,3]. */
+        private int id;
+        
+        /** Distance that the robot travelled on the track.
+         * This distance is taken in the range [0,1).
+         */
+        private double distance = 0;
+        
+        /** Current speed of the robot in units/seconds. */
+        private double speed = 0;
+        
+        /** The last time the robot position was updated. */
+        private double lastATime = 0;
+        
+        /** The position this robot had when last updated. */
+        private Vector lastCalculatedPosition = null;
 
         // the position of a body part is described as the front bottom
         // coordinate. Since the robot is mostly two-dimensional in starting
@@ -562,27 +589,64 @@ public class RobotRace extends Base {
         public final static double R_EYE_POS_Y = 0.5;
         public final static double R_EYE_POS_Z = 0.8;
 
-
-
         /** The material from which this robot is built. */
         private final Material material;
 
         /**
          * Constructs the robot with initial parameters.
          */
-        public Robot(Material material
-            /* add other parameters that characterize this robot */) {
+        public Robot(int id, Material material) {
+            this.id = id;
             this.material = material;
-
-            // code goes here ...
+        }
+        
+        /**
+         * Returns the last calculated position of this robot.
+         */
+        public Vector getLastCalculatedPosition() {
+            return lastCalculatedPosition;
+        }
+        
+        /**
+         * Calculate the new position of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        public void updatePosition(float aTime) {
+            distance += (aTime-lastATime)*speed; // Increment the distance by the time passed times the speed
+            distance = distance-Math.floor(distance); // Make sure the distance is still in the range [0,1)
+            lastATime = aTime; // Update the last aTime
+            lastCalculatedPosition = raceTrack.getPointOnCurve(distance, id+0.5); // update the position Vector object
+        }
+        
+        /**
+         * Returns the new position of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        public Vector getPosition(float aTime) {
+            updatePosition(aTime);
+            return lastCalculatedPosition;
+        }
+        
+        /**
+         * Changes the speed of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        
+        public void setSpeed(double speed, float aTime) {
+            updatePosition(aTime); // update the position with the old speed
+            this.speed = speed; // update the speed
         }
 
         /**
          * Draws this robot (as a {@code stickfigure} if specified).
          *
-         * @param aTime Time for animation, in seconds
+         * @param aTime Time for animation and movement, in seconds
          */
         public void draw(boolean stickFigure, float aTime) {
+            
             // set the correct material properties
             material.setSurfaceColor(gl);
 
@@ -670,6 +734,7 @@ public class RobotRace extends Base {
             drawCone(new Vector(EYE_DIR_X, EYE_DIR_Y, EYE_DIR_Z),
                      EYE_BASE, EYE_HEIGHT, EYE_SLICES, EYE_STACKS, stickFigure);
             gl.glPopMatrix();
+            
         }
     }
 
@@ -769,6 +834,12 @@ public class RobotRace extends Base {
             Material.SILVER,
             Material.WOOD
         };
+        
+        /** Material of the start line. */
+        private Material startLineMaterial = Material.WHITE;
+        
+        /** Number of display lists to create per track. */
+        private int displayListPerTrackAmount = 5;
 
         /** Array with control points for the O-track. */
         private Vector[] controlPointsOTrack;
@@ -831,40 +902,66 @@ public class RobotRace extends Base {
             if (0 == trackNr) {
                 if (!displayListTestTrackSetUp) {
                     // Reserve the indices for the display lists, one for each curve
-                    displayListTestTrack = gl.glGenLists(4);
-                    // Compile the display lists for the test track
-                    for (int curve = 0; curve < 4; curve++) {
-                        // Start compiling the display lists
-                        gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
-                        // Use a triangle strip and create a closed ring out of triangles
-                        gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                            for (int i = 0; i < SEGMENTS; i++) {
-                                // SEGMENTS times: add a vertex describing an inner and outer point of this curve
-                                double t = i/((double) SEGMENTS);
-                                Vector inner = getPointOnCurve(t, curve);
-                                Vector outer = getPointOnCurve(t, curve+1);
+                    displayListTestTrack = gl.glGenLists(displayListPerTrackAmount);
+                    // Compile the display lists for the 4 curves
+                        for (int curve = 0; curve < 4; curve++) {
+                            // Start compiling the display lists
+                            gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
+                            // Use a triangle strip and create a closed ring out of triangles
+                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                for (int i = 0; i < SEGMENTS; i++) {
+                                    // SEGMENTS times: add a vertex describing an inner and outer point of this curve
+                                    double t = i/((double) SEGMENTS);
+                                    Vector inner = getPointOnCurve(t, curve);
+                                    Vector outer = getPointOnCurve(t, curve+1);
+                                    // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                                    gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                    gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                                }
+                                // Add the first inner and outer points of this curve again to close the ring
+                                Vector inner = getPointOnCurve(0, curve);
+                                Vector outer = getPointOnCurve(0, curve+1);
                                 gl.glVertex3d(inner.x(), inner.y(), inner.z());
                                 gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                            }
-                            // Add the first inner and outer points of this curve again to close the ring
-                            Vector inner = getPointOnCurve(0, curve);
-                            Vector outer = getPointOnCurve(0, curve+1);
-                            gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                            gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            // Finish the triangle strip
+                            gl.glEnd();
+                            // Finish compiling the display list
+                            gl.glEndList();
+                        }
+                    // Compile the display list for the start line
+                        gl.glNewList(displayListTestTrack+4, GL_COMPILE);
+                        // Draw the start line
+                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                // Add the first inner and outer points as points on the startline on this piece of the track
+                                Vector inner = getPointOnCurve(0, 0).add(Vector.Z.scale(0.0001));
+                                Vector outer = getPointOnCurve(0, 4).add(Vector.Z.scale(0.0001));
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                                // Add an inner and outer point just past the initial points as the end of the startline in the triangle strip
+                                inner = getPointOnCurve(0.001, 0).add(Vector.Z.scale(0.0001));
+                                outer = getPointOnCurve(0.001, 4).add(Vector.Z.scale(0.0001));
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            // Finish the start line
+                            gl.glEnd();
                         // Finish compiling the display list
-                        gl.glEnd();
                         gl.glEndList();
-                    }
                     // Set the displayListTestTrackSetUp variable to true so the display lists won't be created again
                     displayListTestTrackSetUp = true;
                 }
                 // Execute the display lists for the test track
-                for (int curve = 0; curve < 4; curve++) {
-                    // Pass the material for this curve to OpenGL
-                    materials[curve].setSurfaceColor(gl);
-                    // Call the display list
-                    gl.glCallList(displayListTestTrack+curve);
-                }
+                    // Execute the display lists of the curves
+                        for (int curve = 0; curve < 4; curve++) {
+                            // Pass the material for this curve to OpenGL
+                            materials[curve].setSurfaceColor(gl);
+                            // Call the display list
+                            gl.glCallList(displayListTestTrack+curve);
+                        }
+                    // Execute the display lists of the start line
+                        // Pass the material for this
+                        startLineMaterial.setSurfaceColor(gl);
+                        // Call the display list
+                        gl.glCallList(displayListTestTrack+4);
                 
             // The O-track is selected
             } else if (1 == trackNr) {
@@ -889,8 +986,9 @@ public class RobotRace extends Base {
          * Returns the position of the (@code curve)'th outermost curve at 0 <= (@code t) <= 1.<br>
          * 0 = the innermost curve
          * 5 = the outermost curve
+         * The curve parameter is a double to support getting the middle position of a track.
          */
-        public Vector getPointOnCurve(double t, int curve) {
+        public Vector getPointOnCurve(double t, double curve) {
             Vector point = getPoint(t);
             if (curve == 0) {
                 return point;
