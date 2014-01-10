@@ -546,6 +546,9 @@ public class RobotRace extends Base {
         
         /** The position this robot had when last updated. */
         private Vector lastCalculatedPosition = null;
+        
+        /** The position tangent this robot had when last updated. */
+        private Vector lastCalculatedPositionTangent = null;
 
         // the position of a body part is described as the front bottom
         // coordinate. Since the robot is mostly two-dimensional in starting
@@ -632,6 +635,13 @@ public class RobotRace extends Base {
         }
         
         /**
+         * Returns the last calculated position tangent of this robot.
+         */
+        public Vector getLastCalculatedPositionTangent() {
+            return lastCalculatedPositionTangent;
+        }
+        
+        /**
          * Calculate the new position of this robot.
          * 
          * @param aTime Time for animation and movement, in seconds
@@ -641,6 +651,7 @@ public class RobotRace extends Base {
             distance = distance-Math.floor(distance); // Make sure the distance is still in the range [0,1)
             lastATime = aTime; // Update the last aTime
             lastCalculatedPosition = raceTrack.getPointOnCurve(distance, id+0.5); // update the position Vector object
+            lastCalculatedPositionTangent = raceTrack.getTangent(distance);
         }
         
         /**
@@ -651,6 +662,16 @@ public class RobotRace extends Base {
         public Vector getPosition(float aTime) {
             updatePosition(aTime);
             return lastCalculatedPosition;
+        }
+        
+        /**
+         * Returns the new position tangent of this robot.
+         * 
+         * @param aTime Time for animation and movement, in seconds
+         */
+        public Vector getPositionTangent(float aTime) {
+            updatePosition(aTime);
+            return lastCalculatedPositionTangent;
         }
         
         /**
@@ -856,7 +877,7 @@ public class RobotRace extends Base {
         private Material startLineMaterial = Material.WHITE;
         
         /** Number of display lists to create per track. */
-        private int displayListPerTrackAmount = 5;
+        private int displayListPerTrackAmount = 7;
 
         /** Array with control points for the O-track. */
         private Vector[] controlPointsOTrack;
@@ -949,6 +970,7 @@ public class RobotRace extends Base {
                         gl.glNewList(displayListTestTrack+4, GL_COMPILE);
                         // Draw the start line
                             gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                            {
                                 // Add the first inner and outer points as points on the startline on this piece of the track
                                 Vector inner = getPointOnCurve(0, 0).add(Vector.Z.scale(0.0001));
                                 Vector outer = getPointOnCurve(0, 4).add(Vector.Z.scale(0.0001));
@@ -959,10 +981,36 @@ public class RobotRace extends Base {
                                 outer = getPointOnCurve(0.001, 4).add(Vector.Z.scale(0.0001));
                                 gl.glVertex3d(inner.x(), inner.y(), inner.z());
                                 gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            }
                             // Finish the start line
                             gl.glEnd();
                         // Finish compiling the display list
                         gl.glEndList();
+                    // Compile the display lists for the track edges
+                        for (boolean insideOrOutside : new boolean[] {true, false}) {
+                            gl.glNewList(displayListTestTrack+(insideOrOutside?1:0), GL_COMPILE);
+                                // Use a triangle strip and create a closed ring out of triangles
+                                gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                    for (int i = 0; i < SEGMENTS; i++) {
+                                        // SEGMENTS times: add a vertex describing an top and bottom point of the edge
+                                        double t = i/((double) SEGMENTS);
+                                        Vector top = getPointOnCurve(t, insideOrOutside?4:0);
+                                        Vector bottom = new Vector(top.x(), top.y(), -1);
+                                        // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                                        gl.glVertex3d(top.x(), top.y(), top.z());
+                                        gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
+                                    }
+                                    // Add the first inner and outer points of this curve again to close the ring
+                                    Vector top = getPointOnCurve(0, insideOrOutside?4:0);
+                                    Vector bottom = new Vector(top.x(), top.y(), -1);
+                                    gl.glVertex3d(top.x(), top.y(), top.z());
+                                    gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
+                                // Finish the triangle strip
+                                gl.glEnd();
+                            // Finish compiling the display list
+                            gl.glEndList();
+                        }
+                            
                     // Set the displayListTestTrackSetUp variable to true so the display lists won't be created again
                     displayListTestTrackSetUp = true;
                 }
