@@ -165,26 +165,6 @@ public class RobotRace extends Base {
         gl.glMatrixMode(GL_PROJECTION);
         gl.glLoadIdentity();
 
-        // derive position of E
-        // first we derive the vector V from the polar coordinates
-        //camera.eye = new Vector(gs.vDist * Math.sin(gs.theta) * Math.cos(gs.phi),
-                                //gs.vDist * Math.sin(gs.theta) * Math.sin(gs.phi),
-                                //gs.vDist * Math.cos(gs.theta));
-        camera.eye = new Vector(gs.vDist * Math.cos(gs.theta) * Math.cos(gs.phi),
-                                gs.vDist * Math.sin(gs.theta) * Math.cos(gs.phi),
-                                gs.vDist * Math.sin(gs.phi));
-        camera.eye = camera.eye.add(gs.cnt);
-
-        // camera center
-        camera.center = gs.cnt;
-
-        // for now, leave up as Z axis
-        camera.up = Vector.Z;
-
-        // znear = 0.1*gs.vDist
-        // zfar = 10.0*gs.vDist
-        //glu.gluPerspective(40, (float)gs.w / (float)gs.h, 0.1, 100);
-
         // calculate field of view
         // arctan((vWidth / 2) / (zNear+zFar) / 2) * 2
         double zNear = 0.1 * gs.vDist;
@@ -193,11 +173,7 @@ public class RobotRace extends Base {
         fovy = Math.toDegrees(fovy);
 
         // Set the perspective.
-        // Modify this to meet the requirements in the assignment.
         glu.gluPerspective(fovy, (float)gs.w / (float)gs.h, zNear, zFar);
-
-        // tan(alpha) = (gs.vWidth / 2) / gs.vDist
-        // alpha = arctan((gs.vWidth / 2) / gs.vDist)
 
         // Set camera.
         gl.glMatrixMode(GL_MODELVIEW);
@@ -745,7 +721,14 @@ public class RobotRace extends Base {
          * on the camera's default mode.
          */
         private void setDefaultMode() {
-            // code goes here ...
+            center = gs.cnt;
+            up = Vector.Z;
+            // derive position of the camera eye
+            // first we derive the vector V from the polar coordinates
+            eye = new Vector(gs.vDist * Math.cos(gs.theta) * Math.cos(gs.phi),
+                             gs.vDist * Math.sin(gs.theta) * Math.cos(gs.phi),
+                             gs.vDist * Math.sin(gs.phi));
+            eye.add(center);
         }
 
         /**
