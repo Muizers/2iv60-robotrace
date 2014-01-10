@@ -830,16 +830,18 @@ public class RobotRace extends Base {
             // for some reason, the robot is shifted slightly
             return pos.add(Vector.X.scale(-1));
         }
+        private Vector calculateCurrentRobotPositionTangent() {
+            return robots[robotNum].getPositionTangent(gs.tAnim);
+        }
 
         /**
          * Computes {@code eye}, {@code center}, and {@code up}, based
          * on the helicopter mode.
          */
         private void setHelicopterMode() {
-            // TODO: Check direction of robot
             // center is the robot position
             center = calculateCurrentRobotPosition();
-            up = Vector.Y;
+            up = calculateCurrentRobotPositionTangent();
 
             eye = center;
             eye = eye.add(new Vector(0, 0, 50));
