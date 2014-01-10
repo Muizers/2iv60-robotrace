@@ -861,8 +861,11 @@ public class RobotRace extends Base {
             center = calculateCurrentRobotPosition();
             up = Vector.Z;
 
-            eye = center;
-            eye = eye.add(new Vector(20, 0, 1));
+            // calculate the eye position
+            eye = calculateCurrentRobotPositionTangent()
+                .cross(Vector.Z).normalized().scale(20);
+            eye = center.add(eye);
+            eye = eye.add(new Vector(0, 0, 1));
         }
 
         /**
