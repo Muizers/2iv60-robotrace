@@ -172,7 +172,7 @@ public class RobotRace extends Base {
 
         // calculate field of view
         // arctan((vWidth / 2) / (zNear+zFar) / 2) * 2
-        double zNear = 0.1 * gs.vDist;
+        double zNear = 0.001 * gs.vDist;
         double zFar = 10.0 * gs.vDist;
         double fovy = Math.atan((gs.vWidth / 2) / ((zNear + zFar) / 2)) * 2;
         fovy = Math.toDegrees(fovy);
@@ -1162,12 +1162,40 @@ public class RobotRace extends Base {
      * Implementation of the terrain.
      */
     private class Terrain {
+        
+        /** Display list for the terrain. */
+        private int displayListTerrain;
+        
+        /** Number of segments to be used to draw the terrain (per dimension per direction). */
+        private static int SEGMENTS = 100;
 
         /**
          * Can be used to set up a display list.
          */
         public Terrain() {
-            // code goes here ...
+            displayListTerrain = gl.glGenLists(1);
+            // Start compiling the display list
+            gl.glNewList(displayListTerrain, GL_COMPILE);
+            // Use a triangle strip and create a closed ring out of triangles
+            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                for (int xi = -SEGMENTS; xi <= SEGMENTS; xi++) {
+                    // SEGMENTS times: add a vertex describing an inner and outer point of this curve
+                    double x = xBegin+xSize*xi/((double) SEGMENTS);
+                    Vector inner = getPointOnCurve(t, curve);
+                    Vector outer = getPointOnCurve(t, curve+1);
+                    // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                    gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                    gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                }
+                // Add the first inner and outer points of this curve again to close the ring
+                Vector inner = getPointOnCurve(0, curve);
+                Vector outer = getPointOnCurve(0, curve+1);
+                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+            // Finish the triangle strip
+            gl.glEnd();
+            // Finish compiling the display list
+            gl.glEndList();
         }
 
         /**
