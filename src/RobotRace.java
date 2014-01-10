@@ -662,6 +662,17 @@ public class RobotRace extends Base {
             updatePosition(aTime);
             return lastCalculatedPositionTangent;
         }
+
+        /**
+         * Get the head position.
+         *
+         * @return Head position.
+         */
+        public Vector getHeadPosition(float aTime) {
+            Vector position = getPosition(aTime);
+            position = position.add(new Vector(HEAD_POS_X, HEAD_POS_Y, HEAD_POS_Z));
+            return position.add(new Vector(HEAD_HEIGHT / 2, 0, 0));
+        }
         
         /**
          * Changes the speed of this robot.
@@ -841,6 +852,11 @@ public class RobotRace extends Base {
         private Vector calculateCurrentRobotPositionTangent() {
             return robots[robotNum].getPositionTangent(gs.tAnim);
         }
+        private Vector calculateCurrentRobotHeadPosition() {
+            Vector pos = robots[robotNum].getHeadPosition(gs.tAnim);
+            // for some reason, the robot is shifted slightly
+            return pos.add(Vector.X.scale(-1));
+        }
 
         /**
          * Computes {@code eye}, {@code center}, and {@code up}, based
@@ -882,7 +898,7 @@ public class RobotRace extends Base {
         private void setFirstPersonMode() {
             // TODO: Change the camera to the head
             // eye is the robot's eye position
-            eye = calculateCurrentRobotPosition().add(new Vector(0, 0, 1));
+            eye = calculateCurrentRobotHeadPosition();
             up = Vector.Z;
 
             // center is in the direction of the tangent
