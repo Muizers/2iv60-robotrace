@@ -924,10 +924,10 @@ public class RobotRace extends Base {
         
         /** Material of tracks, from innermost to outermost. */
         private Material[] materials = new Material[] {
-            Material.GOLD,
-            Material.SILVER,
+            Material.ORANGE,
             Material.WOOD,
-            Material.ORANGE
+            Material.SILVER,
+            Material.GOLD
         };
         
         /** Material of the start line. */
