@@ -849,6 +849,9 @@ public class RobotRace extends Base {
         /**
          * Updates the camera viewpoint and direction based on the
          * selected camera mode.
+         *
+         * For the camera mode, we periodically switch all robots for
+         * the helicopter, motor cycle and first person mode. 
          */
         public void update(int mode) {
             setRobotNum();
