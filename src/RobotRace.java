@@ -81,14 +81,19 @@ public class RobotRace extends Base {
      *
      * Usually something like 0.1
      */
-    public final static double SPEED_MULTIPLIER = 0.1;
+    public final static double SPEED_MULTIPLIER = 0.05;
 
     /**
      * Minimum speed.
      *
      * Usually something like 0.1
      */
-    public final static double SPEED_MINIMUM = 0.1;
+    public final static double SPEED_MINIMUM = 0.05;
+
+    /**
+     * Animation speed.
+     */
+    public final static double ANIMATION_SPEED = 4.0;
 
     /**
      * Last time
@@ -407,7 +412,7 @@ public class RobotRace extends Base {
     public void rotateBodyPart(float aTime, Vector axis, double trans)
     {
         gl.glTranslated(0, 0, trans);
-        gl.glRotated(Math.sin(aTime * 2) * 45, axis.x(), axis.y(), axis.z());
+        gl.glRotated(Math.sin(aTime * ANIMATION_SPEED) * 45, axis.x(), axis.y(), axis.z());
         gl.glTranslated(0, 0, trans * -1);
     }
 
