@@ -942,17 +942,13 @@ public class RobotRace extends Base {
         }
 
         private Vector calculateCurrentRobotPosition() {
-            Vector pos = robots[robotNum].getPosition(gs.tAnim);
-            // for some reason, the robot is shifted slightly
-            return pos.add(Vector.X.scale(-1));
+            return robots[robotNum].getPosition(gs.tAnim);
         }
         private Vector calculateCurrentRobotPositionTangent() {
             return robots[robotNum].getPositionTangent(gs.tAnim);
         }
         private Vector calculateCurrentRobotHeadPosition() {
-            Vector pos = robots[robotNum].getHeadPosition(gs.tAnim);
-            // for some reason, the robot is shifted slightly
-            return pos.add(Vector.X.scale(-1));
+            return robots[robotNum].getHeadPosition(gs.tAnim);
         }
 
         /**
