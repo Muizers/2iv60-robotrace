@@ -152,10 +152,10 @@ public class RobotRace extends Base {
         gl.glEnable(GL_LIGHTING);
         gl.glEnable(GL_LIGHT0);
 
-        //FloatBuffer ambient = FloatBuffer.wrap(new float[] {0.3f, 0.3f, 0.3f, 1.0f});
-        //gl.glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+        FloatBuffer ambient = FloatBuffer.wrap(new float[] {0.3f, 0.3f, 0.3f, 1.0f});
+        gl.glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
 
-        FloatBuffer lightPos = FloatBuffer.wrap(new float[] {-1f, 0f, 1f, 1f});
+        FloatBuffer lightPos = FloatBuffer.wrap(new float[] {1f, 0f, 1f, 1f});
         FloatBuffer whiteColor = FloatBuffer.wrap(new float[] {0.6f, 0.6f, 0.6f, 1f});
 
         gl.glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
@@ -1130,6 +1130,8 @@ public class RobotRace extends Base {
                             gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
                             // Use a triangle strip and create a closed ring out of triangles
                             gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                // Normal is pointing up for track
+                                gl.glNormal3d(0, 0, 1);
                                 for (int i = 0; i < SEGMENTS; i++) {
                                     // SEGMENTS times: add a vertex describing an inner and outer point of this curve
                                     double t = i/((double) SEGMENTS);
@@ -1150,6 +1152,8 @@ public class RobotRace extends Base {
                             gl.glEndList();
                         }
                     // Compile the display list for the start line
+                        // Normal is pointing up for start line
+                        gl.glNormal3d(0, 0, 1);
                         gl.glNewList(displayListTestTrack+4, GL_COMPILE);
                         // Draw the start line
                             gl.glBegin(GL2.GL_TRIANGLE_STRIP);
@@ -1177,11 +1181,21 @@ public class RobotRace extends Base {
                                     for (int i = 0; i < SEGMENTS; i++) {
                                         // SEGMENTS times: add a vertex describing an top and bottom point of the edge
                                         double t = i/((double) SEGMENTS);
+                                        double nextT = (i+1)/((double) SEGMENTS);
                                         Vector top = getPointOnCurve(t, insideOrOutside?4:0);
+                                        Vector nextTop = getPointOnCurve(nextT, insideOrOutside?4:0);
                                         Vector bottom = new Vector(top.x(), top.y(), -1);
+                                        if (i == 0) {
+                                            double prevT = (i+1)/((double) SEGMENTS);
+                                            Vector prevTop = getPointOnCurve(prevT, insideOrOutside?4:0);
+                                            Vector normal = top.subtract(prevTop).cross(bottom.subtract(top)).scale(-1);
+                                            gl.glNormal3d(normal.x(), normal.y(), normal.z());
+                                        }
+                                        Vector normal = nextTop.subtract(top).cross(bottom.subtract(top));
                                         // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
                                         gl.glVertex3d(top.x(), top.y(), top.z());
                                         gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
+                                        gl.glNormal3d(normal.x(), normal.y(), normal.z());
                                     }
                                     // Add the first inner and outer points of this curve again to close the ring
                                     Vector top = getPointOnCurve(0, insideOrOutside?4:0);
@@ -1357,19 +1371,41 @@ public class RobotRace extends Base {
                             double f21 = getTerrainHeight(x2, y1);
                             double f22 = getTerrainHeight(x2, y2);
                             // Draw the first triangle between (x1, y1), (x1, y2) and (x2, y2)
-                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f11));
-                            gl.glVertex3d(x1, y1, f11);
-                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f12));
-                            gl.glVertex3d(x1, y2, f12);
-                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f22));
-                            gl.glVertex3d(x2, y2, f22);
-                             // Draw the first triangle between (x1, y1), (x2, y1) and (x2, y2)
-                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f11));
-                            gl.glVertex3d(x1, y1, f11);
-                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f21));
-                            gl.glVertex3d(x2, y1, f21);
-                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f22));
-                            gl.glVertex3d(x2, y2, f22);
+                            {
+                                // Create vector objects for points
+                                Vector point1 = new Vector(x1, y1, f11);
+                                Vector point2 = new Vector(x1, y2, f12);
+                                Vector point3 = new Vector(x2, y2, f22);
+                                // Create normal vector
+                                Vector normal = point2.subtract(point1).cross(point3.subtract(point1)).scale(-1);
+                                // Set normal vector
+                                gl.glNormal3d(normal.x(), normal.y(), normal.z());
+                                // Draw 3 vertices with texture colors
+                                gl.glTexCoord1d(getTextureCoordinateFromHeight(point1.z()));
+                                gl.glVertex3d(point1.x(), point1.y(), point1.z());
+                                gl.glTexCoord1d(getTextureCoordinateFromHeight(point2.z()));
+                                gl.glVertex3d(point2.x(), point2.y(), point2.z());
+                                gl.glTexCoord1d(getTextureCoordinateFromHeight(point3.z()));
+                                gl.glVertex3d(point3.x(), point3.y(), point3.z());
+                            }
+                            // Draw the first triangle between (x1, y1), (x2, y1) and (x2, y2)
+                            {
+                               // Create vector objects for points
+                               Vector point1 = new Vector(x1, y1, f11);
+                               Vector point2 = new Vector(x2, y1, f21);
+                               Vector point3 = new Vector(x2, y2, f22);
+                               // Create normal vector
+                               Vector normal = point2.subtract(point1).cross(point3.subtract(point1));
+                               // Set normal vector
+                               gl.glNormal3d(normal.x(), normal.y(), normal.z());
+                               // Draw 3 vertices with texture colors
+                               gl.glTexCoord1d(getTextureCoordinateFromHeight(point1.z()));
+                               gl.glVertex3d(point1.x(), point1.y(), point1.z());
+                               gl.glTexCoord1d(getTextureCoordinateFromHeight(point2.z()));
+                               gl.glVertex3d(point2.x(), point2.y(), point2.z());
+                               gl.glTexCoord1d(getTextureCoordinateFromHeight(point3.z()));
+                               gl.glVertex3d(point3.x(), point3.y(), point3.z());
+                            }
                         }
                     }
                 // Finish the triangle list
