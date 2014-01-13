@@ -1,3 +1,6 @@
+import java.awt.Color;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import static javax.media.opengl.GL2.*;
@@ -1309,8 +1312,18 @@ public class RobotRace extends Base {
             return 0.6*Math.cos(0.3*x+0.2*y)+0.4*Math.cos(x-0.5*y);
         }
         
+        /** The colors for the 1D texture */
+        private Color[] textureColors = new Color[] {
+            Color.BLUE,
+            Color.YELLOW,
+            Color.GREEN
+        };
+        
+        /** The texid for the 1D texture */
+        private int texture;
+        
         /**
-         * Can be used to set up a display list.
+         * Constructs the terrain.
          */
         public Terrain() {
             
@@ -1322,6 +1335,9 @@ public class RobotRace extends Base {
         public void draw() {
             // If the display list has not been set up yet, create it
             if (!displayListTerrainSetUp) {
+                // Create the texture
+                texture = create1DTexture(gl, textureColors);
+                // Set up the display list
                 displayListTerrain = gl.glGenLists(1);
                 // Start compiling the display list
                 gl.glNewList(displayListTerrain, GL_COMPILE);
@@ -1341,12 +1357,18 @@ public class RobotRace extends Base {
                             double f21 = getTerrainHeight(x2, y1);
                             double f22 = getTerrainHeight(x2, y2);
                             // Draw the first triangle between (x1, y1), (x1, y2) and (x2, y2)
+                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f11));
                             gl.glVertex3d(x1, y1, f11);
+                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f12));
                             gl.glVertex3d(x1, y2, f12);
+                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f22));
                             gl.glVertex3d(x2, y2, f22);
                              // Draw the first triangle between (x1, y1), (x2, y1) and (x2, y2)
+                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f11));
                             gl.glVertex3d(x1, y1, f11);
+                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f21));
                             gl.glVertex3d(x2, y1, f21);
+                            gl.glTexCoord1d(getTextureCoordinateFromHeight(f22));
                             gl.glVertex3d(x2, y2, f22);
                         }
                     }
@@ -1357,12 +1379,49 @@ public class RobotRace extends Base {
                 // Set set up boolean to true
                 displayListTerrainSetUp = true;
             }
-            // Set the terrain material
-            Material.BLUE.setSurfaceColor(gl);
+            // Bind the terrain texture
+            gl.glBindTexture(GL_TEXTURE_1D, texture);
             // Execute the display list for the terrain
             gl.glCallList(displayListTerrain);
+            // Unbind the terrain texture
+            gl.glBindTexture(GL_TEXTURE_1D, 0);
         }
         
+        public double getTextureCoordinateFromHeight(double height) {
+            height = (height+1)/4+0.25;
+            height = (height<0.25)?0.25:height;
+            height = (height>0.75)?0.75:height;
+            return height;
+        }
+        
+    }
+
+       /**
+    * Creates a new 1D - texture.
+    * @param gl
+    * @param colors
+    * @return the texture ID for the generated texture.
+    */
+    public int create1DTexture(GL2 gl, Color[] colors){
+    gl.glDisable(GL_TEXTURE_2D);
+    gl.glEnable(GL_TEXTURE_1D);
+    int[] texid = new int[]{-1};
+    gl.glGenTextures(1, texid, 0);
+    ByteBuffer bb = ByteBuffer.allocateDirect(colors.length * 4).order(ByteOrder.nativeOrder());
+    for (Color color : colors) {
+       int pixel = color.getRGB();
+       bb.put((byte) ((pixel >> 16) & 0xFF)); // Red component
+       bb.put((byte) ((pixel >> 8) & 0xFF));  // Green component
+       bb.put((byte) (pixel & 0xFF));         // Blue component
+       bb.put((byte) ((pixel >> 24) & 0xFF)); // Alpha component
+    }
+    bb.flip();
+    gl.glBindTexture(GL_TEXTURE_1D, texid[0]);
+    gl.glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, colors.length, 0, GL_RGBA, GL_UNSIGNED_BYTE, bb);
+    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl.glBindTexture(GL_TEXTURE_1D, 0);
+    return texid[0];
     }
 
     /**
