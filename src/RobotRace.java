@@ -240,8 +240,6 @@ public class RobotRace extends Base {
             gl.glDisable(GL_COLOR_MATERIAL);
         }
 
-        gl.glTranslated(-1.05, 0, 0);
-
         determineSpeed();
 
         // Draw the robots
