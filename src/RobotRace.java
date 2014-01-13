@@ -74,6 +74,20 @@ public class RobotRace extends Base {
     private final Terrain terrain;
 
     /**
+     * Speed multiplier.
+     *
+     * Usually something like 0.1
+     */
+    public final static double SPEED_MULTIPLIER = 0.1;
+
+    /**
+     * Minimum speed.
+     *
+     * Usually something like 0.1
+     */
+    public final static double SPEED_MINIMUM = 0.1;
+
+    /**
      * Last time
      */
     private int lastTime = 0;
@@ -280,7 +294,7 @@ public class RobotRace extends Base {
     {
         if (Math.round(gs.tAnim) != lastTime) {
             for (int i = 0; i < 4; i++) {
-                robots[i].setSpeed(0.1 + rand.nextDouble() * 0.1, gs.tAnim);
+                robots[i].setSpeed(SPEED_MINIMUM + rand.nextDouble() * SPEED_MULTIPLIER, gs.tAnim);
             }
             lastTime = Math.round(gs.tAnim);
         }
@@ -380,6 +394,20 @@ public class RobotRace extends Base {
         drawAxis(Vector.Z);
 
         gl.glColor3f(0f, 0f, 0f);
+    }
+
+    /**
+     * Rotate a body part.
+     *
+     * @param aTime
+     * @param axis Axis to rotate over
+     * @param trans Z-translation.
+     */
+    public void rotateBodyPart(float aTime, Vector axis, double trans)
+    {
+        gl.glTranslated(0, 0, trans);
+        gl.glRotated(Math.sin(aTime * 2) * 45, axis.x(), axis.y(), axis.z());
+        gl.glTranslated(0, 0, trans * -1);
     }
 
     /**
@@ -574,14 +602,18 @@ public class RobotRace extends Base {
         // coordinates, the x is usually 0
 
         // general leg (box)
+        // the leg height is 0.4 instead of 0.3, so the animation looks
+        // better
         public final static double LEG_WIDTH = 0.1;
         public final static double LEG_DEPTH = 0.1;
-        public final static double LEG_HEIGHT = 0.3;
+        public final static double LEG_HEIGHT = 0.4;
 
         // general arm (box)
+        // the leg height is 0.4 instead of 0.3, so the animation looks
+        // better
         public final static double ARM_WIDTH = 0.1;
         public final static double ARM_DEPTH = 0.1;
-        public final static double ARM_HEIGHT = 0.3;
+        public final static double ARM_HEIGHT = 0.4;
 
         // torso (box)
         public final static double TORSO_POS_X = 0.0;
@@ -600,12 +632,12 @@ public class RobotRace extends Base {
         // front arm pos (box)
         public final static double F_ARM_POS_X = 0.0;
         public final static double F_ARM_POS_Y = 0.0;
-        public final static double F_ARM_POS_Z = 0.7;
+        public final static double F_ARM_POS_Z = 0.6; // was 0.7 (done so for animation)
 
         // back arm pos (box)
         public final static double B_ARM_POS_X = 0.0;
         public final static double B_ARM_POS_Y = 1.4;
-        public final static double B_ARM_POS_Z = 0.7;
+        public final static double B_ARM_POS_Z = 0.6; // was 0.7 (done so for animation)
 
         // head (box)
         public final static double HEAD_POS_X = 0.0;
@@ -671,6 +703,11 @@ public class RobotRace extends Base {
             lastATime = aTime; // Update the last aTime
             lastCalculatedPosition = raceTrack.getPointOnCurve(distance, id+0.5); // update the position Vector object
             lastCalculatedPositionTangent = raceTrack.getTangent(distance);
+
+            // TODO: remove this
+            //if (id == 0) {
+                //lastCalculatedPosition = Vector.O;
+            //}
         }
         
         /**
@@ -727,6 +764,7 @@ public class RobotRace extends Base {
             // front leg
             gl.glPushMatrix();
             gl.glTranslated(0, -(LEG_DEPTH / 2), LEG_HEIGHT / 2);
+            rotateBodyPart(aTime, Vector.Y, 0.15);
             drawBox(LEG_WIDTH, LEG_DEPTH, LEG_HEIGHT, stickFigure);
             gl.glPopMatrix();
 
@@ -749,6 +787,7 @@ public class RobotRace extends Base {
             gl.glTranslated(B_LEG_POS_X,
                             -(B_LEG_POS_Y + LEG_DEPTH / 2),
                             B_LEG_POS_Z + LEG_HEIGHT / 2);
+            rotateBodyPart(aTime * -1, Vector.Y, 0.15);
             drawBox(LEG_WIDTH, LEG_DEPTH, LEG_HEIGHT, stickFigure);
             gl.glPopMatrix();
 
@@ -760,6 +799,7 @@ public class RobotRace extends Base {
             gl.glTranslated(F_ARM_POS_X,
                             -(F_ARM_POS_Y + ARM_DEPTH / 2),
                             F_ARM_POS_Z + ARM_HEIGHT / 2);
+            rotateBodyPart(aTime * -1, Vector.X, -0.15);
             drawBox(ARM_WIDTH, ARM_DEPTH, ARM_HEIGHT, stickFigure);
             gl.glPopMatrix();
 
@@ -771,6 +811,7 @@ public class RobotRace extends Base {
             gl.glTranslated(B_ARM_POS_X,
                             -(B_ARM_POS_Y + ARM_DEPTH / 2),
                             B_ARM_POS_Z + ARM_HEIGHT / 2);
+            rotateBodyPart(aTime, Vector.X, -0.15);
             drawBox(ARM_WIDTH, ARM_DEPTH, ARM_HEIGHT, stickFigure);
             gl.glPopMatrix();
 
