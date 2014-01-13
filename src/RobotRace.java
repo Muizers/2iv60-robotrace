@@ -202,7 +202,7 @@ public class RobotRace extends Base {
 
         // calculate field of view
         // arctan((vWidth / 2) / (zNear+zFar) / 2) * 2
-        double zNear = 0.1 * gs.vDist;
+        double zNear = 0.05 * gs.vDist;
         double zFar = 10.0 * gs.vDist;
         double fovy = Math.atan((gs.vWidth / 2) / ((zNear + zFar) / 2)) * 2;
         fovy = Math.toDegrees(fovy);
