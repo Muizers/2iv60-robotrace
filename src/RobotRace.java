@@ -180,7 +180,7 @@ public class RobotRace extends Base {
 
         // calculate field of view
         // arctan((vWidth / 2) / (zNear+zFar) / 2) * 2
-        double zNear = 0.001 * gs.vDist;
+        double zNear = 0.1 * gs.vDist;
         double zFar = 10.0 * gs.vDist;
         double fovy = Math.atan((gs.vWidth / 2) / ((zNear + zFar) / 2)) * 2;
         fovy = Math.toDegrees(fovy);
@@ -417,6 +417,14 @@ public class RobotRace extends Base {
         ORANGE (
             new float[] {0.0f, 0.0f, 0.0f, 1.0f},
             new float[] {0.9f, 0.4f, 0.0f, 1.0f},
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
+        
+        /**
+         * Blue material properties.
+         */
+        BLUE (
+            new float[] {0.0f, 0.0f, 0.0f, 1.0f},
+            new float[] {0.0f, 0.0f, 1.0f, 1.0f},
             new float[] {0.0f, 0.0f, 0.0f, 1.0f}),
         
         /**
@@ -1055,7 +1063,7 @@ public class RobotRace extends Base {
         private boolean displayListCustomTrackSetUp = false;
 
         /**
-         * Constructs the race track, sets up display lists.
+         * Constructs the race track.
          */
         public RaceTrack() {
             
@@ -1199,7 +1207,7 @@ public class RobotRace extends Base {
             Vector normal = tangent.cross(Vector.Z).normalized();
             return point.add(normal.scale(curve));
         }
-
+        
         /**
          * Returns the position of the curve at 0 <= {@code t} <= 1.
          */
@@ -1236,51 +1244,83 @@ public class RobotRace extends Base {
         /** Display list for the terrain. */
         private int displayListTerrain;
         
+        /** Whether the display list for the terrain has been set up. */
+        private boolean displayListTerrainSetUp = false;
+        
         /** Number of segments to be used to draw the terrain (per dimension per direction). */
-        private static int SEGMENTS = 100;
-
+        private int SEGMENTS = 100;
+        
+        /** First x of the terrain. */
+        private int xBegin = 0;
+        
+        /** Size in x of the terrain. */
+        private int xSize = 40;
+        
+        /** First y of the terrain. */
+        private int yBegin = 0;
+        
+        /** Size in y of the terrain. */
+        private int ySize = 40;
+        
+        /** Returns the height of the terrain at a specific x and y. */
+        private double getTerrainHeight(double x, double y) {
+            return 0.6*Math.cos(0.3*x+0.2*y)+0.4*Math.cos(x-0.5*y);
+        }
+        
         /**
          * Can be used to set up a display list.
          */
         public Terrain() {
-            displayListTerrain = gl.glGenLists(1);
-            // Start compiling the display list
-            gl.glNewList(displayListTerrain, GL_COMPILE);
-            // Use a triangle strip and create a closed ring out of triangles
-            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                for (int xi = -SEGMENTS; xi <= SEGMENTS; xi++) {
-                    // SEGMENTS times: add a vertex describing an inner and outer point of this curve
-                    double x = xBegin+xSize*xi/((double) SEGMENTS);
-                    Vector inner = getPointOnCurve(t, curve);
-                    Vector outer = getPointOnCurve(t, curve+1);
-                    // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
-                    gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                    gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                }
-                // Add the first inner and outer points of this curve again to close the ring
-                Vector inner = getPointOnCurve(0, curve);
-                Vector outer = getPointOnCurve(0, curve+1);
-                gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                gl.glVertex3d(outer.x(), outer.y(), outer.z());
-            // Finish the triangle strip
-            gl.glEnd();
-            // Finish compiling the display list
-            gl.glEndList();
+            
         }
 
         /**
          * Draws the terrain.
          */
         public void draw() {
-            // code goes here ...
+            // If the display list has not been set up yet, create it
+            if (!displayListTerrainSetUp) {
+                displayListTerrain = gl.glGenLists(1);
+                // Start compiling the display list
+                gl.glNewList(displayListTerrain, GL_COMPILE);
+                // Use a triangle list
+                gl.glBegin(GL2.GL_TRIANGLES);
+                    for (int xi = -SEGMENTS; xi < SEGMENTS; xi++) {
+                        // Calculate the two x's
+                        double x1 = xBegin+xSize*xi/((double) SEGMENTS);
+                        double x2 = xBegin+xSize*(xi+1)/((double) SEGMENTS);
+                        for (int yi = -SEGMENTS; yi <  SEGMENTS; yi++) {
+                            // Calculate the two y's
+                            double y1 = yBegin+ySize*yi/((double) SEGMENTS);
+                            double y2 = yBegin+ySize*(yi+1)/((double) SEGMENTS);
+                            // Calculate the heights of the terrain
+                            double f11 = getTerrainHeight(x1, y1);
+                            double f12 = getTerrainHeight(x1, y2);
+                            double f21 = getTerrainHeight(x2, y1);
+                            double f22 = getTerrainHeight(x2, y2);
+                            // Draw the first triangle between (x1, y1), (x1, y2) and (x2, y2)
+                            gl.glVertex3d(x1, y1, f11);
+                            gl.glVertex3d(x1, y2, f12);
+                            gl.glVertex3d(x2, y2, f22);
+                             // Draw the first triangle between (x1, y1), (x2, y1) and (x2, y2)
+                            gl.glVertex3d(x1, y1, f11);
+                            gl.glVertex3d(x2, y1, f21);
+                            gl.glVertex3d(x2, y2, f22);
+                        }
+                    }
+                // Finish the triangle list
+                gl.glEnd();
+                // Finish compiling the display list
+                gl.glEndList();
+                // Set set up boolean to true
+                displayListTerrainSetUp = true;
+            }
+            // Set the terrain material
+            Material.BLUE.setSurfaceColor(gl);
+            // Execute the display list for the terrain
+            gl.glCallList(displayListTerrain);
         }
-
-        /**
-         * Computes the elevation of the terrain at ({@code x}, {@code y}).
-         */
-        public float heightAt(float x, float y) {
-            return 0; // <- code goes here
-        }
+        
     }
 
     /**
