@@ -420,6 +420,14 @@ public class RobotRace extends Base {
      * Materials that can be used for the robots.
      */
     public enum Material {
+        
+        /**
+         * Water material properties.
+         */
+        WATER (
+            new float[] {0.5f, 0.5f, 0.5f, 0.5f},
+            new float[] {0.5f, 0.5f, 0.5f, 0.5f},
+            new float[] {0.1f, 0.1f, 0.1f, 0.5f}),
 
         /**
          * Gold material properties.
@@ -1673,6 +1681,7 @@ public class RobotRace extends Base {
         
         /**
          * Constructs the terrain.
+         * Terrain is in [-40,40], looks much better in camera scale.
          */
         public Terrain() {
             
@@ -1744,6 +1753,14 @@ public class RobotRace extends Base {
                         }
                     }
                 // Finish the triangle list
+                gl.glEnd();
+                // Draw the gray transparent surface
+                Material.WATER.setSurfaceColor(gl);
+                gl.glBegin(GL_QUADS);
+                    gl.glVertex3d(-40, -40, 0);
+                    gl.glVertex3d(40, -40, 0);
+                    gl.glVertex3d(40, 40, 0);
+                    gl.glVertex3d(-40, 40, 0);
                 gl.glEnd();
                 // Finish compiling the display list
                 gl.glEndList();
