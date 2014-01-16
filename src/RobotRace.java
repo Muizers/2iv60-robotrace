@@ -1081,16 +1081,94 @@ public class RobotRace extends Base {
         };
 
         /** Array with control points for the L-track. */
-        private Vector[] controlPointsLTrack;
+        private Vector[] controlPointsLTrack = new Vector[] {
+            new Vector(-7.5, 7.5, 2),
+            new Vector(-7.5, 12.5, 2),
+            new Vector(0, 12.5, 2),
+            new Vector(0, 7.5, 2),
+            new Vector(0, 2.5, 2),
+            new Vector(2.5, 0, 2),
+            new Vector(7.5, 0, 2),
+            new Vector(12.5, 0, 2),
+            new Vector(12.5, -7.5, 2),
+            new Vector(7.5, -7.5, 2),
+            new Vector(5, -7.5, 2),
+            new Vector(2.5, -7.5, 2),
+            new Vector(0, -7.5, 2),
+            new Vector(-7.5, -7.5, 2),
+            new Vector(-7.5, -7.5, 2),
+            new Vector(-7.5, 0, 2),
+            new Vector(-7.5, 2.5, 2),
+            new Vector(-7.5, 5, 2),
+            new Vector(-7.5, 7.5, 2),
+        };
 
         /** Array with control points for the C-track. */
-        private Vector[] controlPointsCTrack;
+        private Vector[] controlPointsCTrack = new Vector[] {
+            new Vector(-7.5, 15, 2),
+            new Vector(-5, 15, 2),
+            new Vector(-2.5, 15, 2),
+            new Vector(0, 15, 2),
+            new Vector(7.5, 15, 2),
+            new Vector(7.5, 7.5, 2),
+            new Vector(0, 7.5, 2),
+            new Vector(-7.5, 7.5, 2),
+            new Vector(-7.5, -7.5, 2),
+            new Vector(0, -7.5, 2),
+            new Vector(7.5, -7.5, 2),
+            new Vector(7.5, -15, 2),
+            new Vector(0, -15, 2),
+            new Vector(-2.5, -15, 2),
+            new Vector(-5, -15, 2),
+            new Vector(-7.5, -15, 2),
+            new Vector(-10, -15, 2),
+            new Vector(-15, -12.5, 2),
+            new Vector(-15, -7.5, 2),
+            new Vector(-15, -2.5, 2),
+            new Vector(-15, 2.5, 2),
+            new Vector(-15, 7.5, 2),
+            new Vector(-15, 10, 2),
+            new Vector(-10, 15, 2),
+            new Vector(-7.5, 15, 2)
+        };
 
         /** Array with control points for the custom track. */
-        private Vector[] controlPointsCustomTrack;
+        private Vector[] controlPointsCustomTrack = new Vector[] {
+            new Vector(0, 15, 2),
+            new Vector(2.5, 15, 2),
+            new Vector(5, 15, 2),
+            new Vector(7.5, 15, 2),
+            new Vector(15, 15, 2),
+            new Vector(15, 7.5, 2),
+            new Vector(7.5, 7.5, 2),
+            new Vector(0, 7.5, 2),
+            new Vector(0, -7.5, 2),
+            new Vector(7.5, -7.5, 2),
+            new Vector(15, -7.5, 2),
+            new Vector(15, -15, 2),
+            new Vector(7.5, -15, 2),
+            new Vector(5, -15, 2),
+            new Vector(2.5, -15, 2),
+            new Vector(0, -15, 2),
+            new Vector(-2.5, -15, 2),
+            new Vector(-5, -15, 2),
+            new Vector(-7.5, -15, 2),
+            new Vector(-15, -15, 2),
+            new Vector(-15, -7.5, 2),
+            new Vector(-7.5, -7.5, 2),
+            new Vector(0, -7.5, 2),
+            new Vector(0, 7.5, 2),
+            new Vector(-7.5, 7.5, 2),
+            new Vector(-15, 7.5, 2),
+            new Vector(-15, 15, 2),
+            new Vector(-7.5, 15, 2),
+            new Vector(-5, 15, 2),
+            new Vector(-2.5, 15, 2),
+            new Vector(0, 15, 2)
+        };
         
         /** Number of segments to be used to draw the race tracks. */
-        private int SEGMENTS = 100;
+        private int SEGMENTS = 300;
         
         /** Display list for the test track. */
         private int displayListTestTrack = 0;
@@ -1127,6 +1205,9 @@ public class RobotRace extends Base {
         
         /** The last selected display list. */
         private int currentDisplayList;
+        
+        /** The last selected array of control points. */
+        private Vector[] currentControlPoints;
 
         /**
          * Constructs the race track.
@@ -1164,15 +1245,30 @@ public class RobotRace extends Base {
             
             // The L-track is selected
             } else if (2 == trackNr) {
-                // code goes here ...
+                currentDisplayList = displayListLTrack;
+                if (!displayListLTrackSetUp) {
+                    displayListLTrack = compileCurrentDisplayList();
+                    // Set the displayListOTrackSetUp variable to true so the display lists won't be created again
+                    displayListLTrackSetUp = true;
+                }
 
             // The C-track is selected
             } else if (3 == trackNr) {
-                // code goes here ...
+                currentDisplayList = displayListCTrack;
+                if (!displayListCTrackSetUp) {
+                    displayListCTrack = compileCurrentDisplayList();
+                    // Set the displayListOTrackSetUp variable to true so the display lists won't be created again
+                    displayListCTrackSetUp = true;
+                }
 
             // The custom track is selected
             } else if (4 == trackNr) {
-                // code goes here ...
+                currentDisplayList = displayListCustomTrack;
+                if (!displayListCustomTrackSetUp) {
+                    displayListCustomTrack = compileCurrentDisplayList();
+                    // Set the displayListOTrackSetUp variable to true so the display lists won't be created again
+                    displayListCustomTrackSetUp = true;
+                }
 
             }
             
@@ -1266,16 +1362,24 @@ public class RobotRace extends Base {
                                         // SEGMENTS times: add a vertex describing an top and bottom point of the edge
                                         double t = i/((double) SEGMENTS);
                                         double nextT = (i+1)/((double) SEGMENTS);
+                                        if (nextT >= 1) {
+                                            nextT -= 1;
+                                        }
                                         Vector top = getPointOnCurrentCurve(t, insideOrOutside?4:0);
                                         Vector nextTop = getPointOnCurrentCurve(nextT, insideOrOutside?4:0);
                                         Vector bottom = new Vector(top.x(), top.y(), -1);
                                         if (i == 0) {
-                                            double prevT = (i+1)/((double) SEGMENTS);
+                                            double prevT = (i-1)/((double) SEGMENTS);
+                                            if (prevT < 0) {
+                                                prevT += 1;
+                                            }
                                             Vector prevTop = getPointOnCurrentCurve(prevT, insideOrOutside?4:0);
-                                            Vector normal = top.subtract(prevTop).cross(bottom.subtract(top)).scale(-1);
+                                            Vector normal = top.subtract(prevTop).cross(bottom.subtract(top));
+                                            if(currentTrackNr != 0)normal=normal.scale(-1);
                                             gl.glNormal3d(normal.x(), normal.y(), normal.z());
                                         }
                                         Vector normal = nextTop.subtract(top).cross(bottom.subtract(top));
+                                        if(currentTrackNr != 0)normal=normal.scale(-1);
                                         // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
                                         gl.glVertex3d(top.x(), top.y(), top.z());
                                         gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
@@ -1326,26 +1430,28 @@ public class RobotRace extends Base {
             if (0 == currentTrackNr) {
                 return getTestTangent(t);
             } else if (1 == currentTrackNr) {
-                if (t >= 1) {
+                currentControlPoints = controlPointsOTrack;
+            } else if (2 == currentTrackNr) {
+                currentControlPoints = controlPointsLTrack;
+            } else if (3 == currentTrackNr) {
+                 currentControlPoints = controlPointsCTrack;
+            } else if (4 == currentTrackNr) {
+                 currentControlPoints = controlPointsCustomTrack;
+            }
+            if (t >= 1) {
                     t -= 1;
                 }
-                int numberOfSegments = (controlPointsOTrack.length-1)/3;
-                int segment = (int) Math.floor(t*numberOfSegments);
-                Vector P0 = controlPointsOTrack[segment*3];
-                Vector P1 = controlPointsOTrack[segment*3+1];
-                Vector P2 = controlPointsOTrack[segment*3+2];
-                Vector P3 = controlPointsOTrack[segment*3+3];
-                double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
-                Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3);
-                return tangent;
-            } else if (2 == currentTrackNr) {
-                //TODO same as above
-            } else if (3 == currentTrackNr) {
-                 //TODO same as above
-            } else if (4 == currentTrackNr) {
-                 //TODO same as above
-            }
-            return null;
+            int numberOfSegments = (currentControlPoints.length-1)/3;
+            int segment = (int) Math.floor(t*numberOfSegments);
+            // get Bezier points
+            Vector P0 = currentControlPoints[segment*3];
+            Vector P1 = currentControlPoints[segment*3+1];
+            Vector P2 = currentControlPoints[segment*3+2];
+            Vector P3 = currentControlPoints[segment*3+3];
+            double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
+            // get tangent
+            Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3);
+            return tangent;
         }
         
          /**
@@ -1382,8 +1488,24 @@ public class RobotRace extends Base {
          * The curve parameter is a double to support getting the middle position of a track.
          */
         public Vector getPointOnLCurve(double t, double curve) {
-            //TODO
-            return null;
+            if (t >= 1) {
+                t -= 1;
+            }
+            int numberOfSegments = (controlPointsLTrack.length-1)/3;
+            int segment = (int) Math.floor(t*numberOfSegments);
+            
+            Vector P0 = controlPointsLTrack[segment*3];
+            Vector P1 = controlPointsLTrack[segment*3+1];
+            Vector P2 = controlPointsLTrack[segment*3+2];
+            Vector P3 = controlPointsLTrack[segment*3+3];
+            double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
+            Vector point = getCubicBezierPnt(bezierT, P0, P1, P2, P3);
+            if (curve == 0) {
+                return point;
+            }
+            Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3).scale(-1);
+            Vector normal = tangent.cross(Vector.Z).normalized();
+            return point.add(normal.scale(curve));
         }
         
         /**
@@ -1393,8 +1515,24 @@ public class RobotRace extends Base {
          * The curve parameter is a double to support getting the middle position of a track.
          */
         public Vector getPointOnCCurve(double t, double curve) {
-            //TODO
-            return null;
+            if (t >= 1) {
+                t -= 1;
+            }
+            int numberOfSegments = (controlPointsCTrack.length-1)/3;
+            int segment = (int) Math.floor(t*numberOfSegments);
+            
+            Vector P0 = controlPointsCTrack[segment*3];
+            Vector P1 = controlPointsCTrack[segment*3+1];
+            Vector P2 = controlPointsCTrack[segment*3+2];
+            Vector P3 = controlPointsCTrack[segment*3+3];
+            double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
+            Vector point = getCubicBezierPnt(bezierT, P0, P1, P2, P3);
+            if (curve == 0) {
+                return point;
+            }
+            Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3).scale(-1);
+            Vector normal = tangent.cross(Vector.Z).normalized();
+            return point.add(normal.scale(curve));
         }
         
         /**
@@ -1404,8 +1542,24 @@ public class RobotRace extends Base {
          * The curve parameter is a double to support getting the middle position of a track.
          */
         public Vector getPointOnCustomCurve(double t, double curve) {
-            //TODO
-            return null;
+            if (t >= 1) {
+                t -= 1;
+            }
+            int numberOfSegments = (controlPointsCustomTrack.length-1)/3;
+            int segment = (int) Math.floor(t*numberOfSegments);
+            
+            Vector P0 = controlPointsCustomTrack[segment*3];
+            Vector P1 = controlPointsCustomTrack[segment*3+1];
+            Vector P2 = controlPointsCustomTrack[segment*3+2];
+            Vector P3 = controlPointsCustomTrack[segment*3+3];
+            double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
+            Vector point = getCubicBezierPnt(bezierT, P0, P1, P2, P3);
+            if (curve == 0) {
+                return point;
+            }
+            Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3).scale(-1);
+            Vector normal = tangent.cross(Vector.Z).normalized();
+            return point.add(normal.scale(curve));
         }
         
         /**
