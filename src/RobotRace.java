@@ -715,8 +715,8 @@ public class RobotRace extends Base {
             distance += (aTime-lastATime)*speed; // Increment the distance by the time passed times the speed
             distance = distance-Math.floor(distance); // Make sure the distance is still in the range [0,1)
             lastATime = aTime; // Update the last aTime
-            lastCalculatedPosition = raceTrack.getPointOnCurve(distance, id+0.5); // update the position Vector object
-            lastCalculatedPositionTangent = raceTrack.getTangent(distance);
+            lastCalculatedPosition = raceTrack.getPointOnCurrentCurve(distance, id+0.5); // update the position Vector object
+            lastCalculatedPositionTangent = raceTrack.getTangentOnCurrentCurve(distance);
 
             // TODO: remove this
             //if (id == 0) {
@@ -1064,7 +1064,21 @@ public class RobotRace extends Base {
         private int displayListPerTrackAmount = 7;
 
         /** Array with control points for the O-track. */
-        private Vector[] controlPointsOTrack;
+        private Vector[] controlPointsOTrack = new Vector[] {
+            new Vector(-12, -12, 2),
+            new Vector(-12, -4, 2),
+            new Vector(-12, 4, 2),
+            new Vector(-12, 12, 2),
+            new Vector(-12, 24, 2),
+            new Vector(12, 24, 2),
+            new Vector(12, 12, 2),
+            new Vector(12, 4, 2),
+            new Vector(12, -4, 2),
+            new Vector(12, -12, 2),
+            new Vector(12, -24, 2),
+            new Vector(-12, -24, 2),
+            new Vector(-12, -12, 2)
+        };
 
         /** Array with control points for the L-track. */
         private Vector[] controlPointsLTrack;
@@ -1107,6 +1121,12 @@ public class RobotRace extends Base {
         
         /** Whether the display list for the test track was created yet. */
         private boolean displayListCustomTrackSetUp = false;
+        
+        /** The last selected track nr. */
+        private int currentTrackNr = 0;
+        
+        /** The last selected display list. */
+        private int currentDisplayList;
 
         /**
          * Constructs the race track.
@@ -1119,124 +1139,29 @@ public class RobotRace extends Base {
          * Draws this track, based on the selected track number.
          */
         public void draw(int trackNr) {
+            
+            currentTrackNr = trackNr;
 
             // The test track is selected
             if (0 == trackNr) {
+                currentDisplayList = displayListTestTrack;
                 if (!displayListTestTrackSetUp) {
-                    // Reserve the indices for the display lists, one for each curve
-                    displayListTestTrack = gl.glGenLists(displayListPerTrackAmount);
-                    // Compile the display lists for the 4 curves
-                        for (int curve = 0; curve < 4; curve++) {
-                            // Start compiling the display lists
-                            gl.glNewList(displayListTestTrack+curve, GL_COMPILE);
-                            // Use a triangle strip and create a closed ring out of triangles
-                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                                // Normal is pointing up for track
-                                gl.glNormal3d(0, 0, 1);
-                                for (int i = 0; i < SEGMENTS; i++) {
-                                    // SEGMENTS times: add a vertex describing an inner and outer point of this curve
-                                    double t = i/((double) SEGMENTS);
-                                    Vector inner = getPointOnCurve(t, curve);
-                                    Vector outer = getPointOnCurve(t, curve+1);
-                                    // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
-                                    gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                                    gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                                }
-                                // Add the first inner and outer points of this curve again to close the ring
-                                Vector inner = getPointOnCurve(0, curve);
-                                Vector outer = getPointOnCurve(0, curve+1);
-                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                            // Finish the triangle strip
-                            gl.glEnd();
-                            // Finish compiling the display list
-                            gl.glEndList();
-                        }
-                    // Compile the display list for the start line
-                        // Normal is pointing up for start line
-                        gl.glNormal3d(0, 0, 1);
-                        gl.glNewList(displayListTestTrack+4, GL_COMPILE);
-                        // Draw the start line
-                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                            {
-                                // Add the first inner and outer points as points on the startline on this piece of the track
-                                Vector inner = getPointOnCurve(0, 0).add(Vector.Z.scale(0.0001));
-                                Vector outer = getPointOnCurve(0, 4).add(Vector.Z.scale(0.0001));
-                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                                // Add an inner and outer point just past the initial points as the end of the startline in the triangle strip
-                                inner = getPointOnCurve(0.001, 0).add(Vector.Z.scale(0.0001));
-                                outer = getPointOnCurve(0.001, 4).add(Vector.Z.scale(0.0001));
-                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
-                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
-                            }
-                            // Finish the start line
-                            gl.glEnd();
-                        // Finish compiling the display list
-                        gl.glEndList();
-                    // Compile the display lists for the track edges
-                        for (boolean insideOrOutside : new boolean[] {true, false}) {
-                            gl.glNewList(displayListTestTrack+5+(insideOrOutside?1:0), GL_COMPILE);
-                                // Use a triangle strip and create a closed ring out of triangles
-                                gl.glBegin(GL2.GL_TRIANGLE_STRIP);
-                                    for (int i = 0; i < SEGMENTS; i++) {
-                                        // SEGMENTS times: add a vertex describing an top and bottom point of the edge
-                                        double t = i/((double) SEGMENTS);
-                                        double nextT = (i+1)/((double) SEGMENTS);
-                                        Vector top = getPointOnCurve(t, insideOrOutside?4:0);
-                                        Vector nextTop = getPointOnCurve(nextT, insideOrOutside?4:0);
-                                        Vector bottom = new Vector(top.x(), top.y(), -1);
-                                        if (i == 0) {
-                                            double prevT = (i+1)/((double) SEGMENTS);
-                                            Vector prevTop = getPointOnCurve(prevT, insideOrOutside?4:0);
-                                            Vector normal = top.subtract(prevTop).cross(bottom.subtract(top)).scale(-1);
-                                            gl.glNormal3d(normal.x(), normal.y(), normal.z());
-                                        }
-                                        Vector normal = nextTop.subtract(top).cross(bottom.subtract(top));
-                                        // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
-                                        gl.glVertex3d(top.x(), top.y(), top.z());
-                                        gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
-                                        gl.glNormal3d(normal.x(), normal.y(), normal.z());
-                                    }
-                                    // Add the first inner and outer points of this curve again to close the ring
-                                    Vector top = getPointOnCurve(0, insideOrOutside?4:0);
-                                    Vector bottom = new Vector(top.x(), top.y(), -1);
-                                    gl.glVertex3d(top.x(), top.y(), top.z());
-                                    gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
-                                // Finish the triangle strip
-                                gl.glEnd();
-                            // Finish compiling the display list
-                            gl.glEndList();
-                        }
-                            
+                    displayListTestTrack = compileCurrentDisplayList();
                     // Set the displayListTestTrackSetUp variable to true so the display lists won't be created again
                     displayListTestTrackSetUp = true;
                 }
-                // Execute the display lists for the test track
-                    // Execute the display lists of the curves
-                        for (int curve = 0; curve < 4; curve++) {
-                            // Pass the material for this curve to OpenGL
-                            materials[curve].setSurfaceColor(gl);
-                            // Call the display list
-                            gl.glCallList(displayListTestTrack+curve);
-                        }
-                    // Execute the display lists of the start line
-                        // Pass the material for the start line
-                        startLineMaterial.setSurfaceColor(gl);
-                        // Call the display list
-                        gl.glCallList(displayListTestTrack+4);
-                    // Execute the display lists of the track edges
-                        // Pass the material for the track edges
-                        trackEdgeMaterial.setSurfaceColor(gl);
-                        for (boolean insideOrOutside : new boolean [] {true, false}) {
-                            // Call the display list
-                            gl.glCallList(displayListTestTrack+5+(insideOrOutside?1:0));
-                        }
                 
+            
             // The O-track is selected
             } else if (1 == trackNr) {
-                // code goes here ...
-
+                currentDisplayList = displayListOTrack;
+                if (!displayListOTrackSetUp) {
+                    displayListOTrack = compileCurrentDisplayList();
+                    // Set the displayListOTrackSetUp variable to true so the display lists won't be created again
+                    displayListOTrackSetUp = true;
+                }
+                
+            
             // The L-track is selected
             } else if (2 == trackNr) {
                 // code goes here ...
@@ -1250,28 +1175,259 @@ public class RobotRace extends Base {
                 // code goes here ...
 
             }
+            
+            // Execute the display lists for the current track
+            executeCurrentDisplayList();
+        }
+        
+        public void executeCurrentDisplayList() {
+            
+            // Execute the display lists of the curves
+                        for (int curve = 0; curve < 4; curve++) {
+                            // Pass the material for this curve to OpenGL
+                            materials[curve].setSurfaceColor(gl);
+                            // Call the display list
+                            gl.glCallList(currentDisplayList+curve);
+                        }
+                    // Execute the display lists of the start line
+                        // Pass the material for the start line
+                        startLineMaterial.setSurfaceColor(gl);
+                        // Call the display list
+                        gl.glCallList(currentDisplayList+4);
+                    // Execute the display lists of the track edges
+                        // Pass the material for the track edges
+                        trackEdgeMaterial.setSurfaceColor(gl);
+                        for (boolean insideOrOutside : new boolean [] {true, false}) {
+                            // Call the display list
+                            gl.glCallList(currentDisplayList+5+(insideOrOutside?1:0));
+                        }
+            
+        }
+        
+        public int compileCurrentDisplayList() {
+            
+                    // Reserve the indices for the display lists, one for each curve
+                    currentDisplayList = gl.glGenLists(displayListPerTrackAmount);
+                    // Compile the display lists for the 4 curves
+                        for (int curve = 0; curve < 4; curve++) {
+                            // Start compiling the display lists
+                            gl.glNewList(currentDisplayList+curve, GL_COMPILE);
+                            // Use a triangle strip and create a closed ring out of triangles
+                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                // Normal is pointing up for track
+                                gl.glNormal3d(0, 0, 1);
+                                for (int i = 0; i < SEGMENTS; i++) {
+                                    // SEGMENTS times: add a vertex describing an inner and outer point of this curve
+                                    double t = i/((double) SEGMENTS);
+                                    Vector inner = getPointOnCurrentCurve(t, curve);
+                                    Vector outer = getPointOnCurrentCurve(t, curve+1);
+                                    // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                                    gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                    gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                                }
+                                // Add the first inner and outer points of this curve again to close the ring
+                                Vector inner = getPointOnCurrentCurve(0, curve);
+                                Vector outer = getPointOnCurrentCurve(0, curve+1);
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            // Finish the triangle strip
+                            gl.glEnd();
+                            // Finish compiling the display list
+                            gl.glEndList();
+                        }
+                    // Compile the display list for the start line
+                        // Normal is pointing up for start line
+                        gl.glNormal3d(0, 0, 1);
+                        gl.glNewList(currentDisplayList+4, GL_COMPILE);
+                        // Draw the start line
+                            gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                            {
+                                // Add the first inner and outer points as points on the startline on this piece of the track
+                                Vector inner = getPointOnCurrentCurve(0, 0).add(Vector.Z.scale(0.0001));
+                                Vector outer = getPointOnCurrentCurve(0, 4).add(Vector.Z.scale(0.0001));
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                                // Add an inner and outer point just past the initial points as the end of the startline in the triangle strip
+                                inner = getPointOnCurrentCurve(0.001, 0).add(Vector.Z.scale(0.0001));
+                                outer = getPointOnCurrentCurve(0.001, 4).add(Vector.Z.scale(0.0001));
+                                gl.glVertex3d(inner.x(), inner.y(), inner.z());
+                                gl.glVertex3d(outer.x(), outer.y(), outer.z());
+                            }
+                            // Finish the start line
+                            gl.glEnd();
+                        // Finish compiling the display list
+                        gl.glEndList();
+                    // Compile the display lists for the track edges
+                        for (boolean insideOrOutside : new boolean[] {true, false}) {
+                            gl.glNewList(currentDisplayList+5+(insideOrOutside?1:0), GL_COMPILE);
+                                // Use a triangle strip and create a closed ring out of triangles
+                                gl.glBegin(GL2.GL_TRIANGLE_STRIP);
+                                    for (int i = 0; i < SEGMENTS; i++) {
+                                        // SEGMENTS times: add a vertex describing an top and bottom point of the edge
+                                        double t = i/((double) SEGMENTS);
+                                        double nextT = (i+1)/((double) SEGMENTS);
+                                        Vector top = getPointOnCurrentCurve(t, insideOrOutside?4:0);
+                                        Vector nextTop = getPointOnCurrentCurve(nextT, insideOrOutside?4:0);
+                                        Vector bottom = new Vector(top.x(), top.y(), -1);
+                                        if (i == 0) {
+                                            double prevT = (i+1)/((double) SEGMENTS);
+                                            Vector prevTop = getPointOnCurrentCurve(prevT, insideOrOutside?4:0);
+                                            Vector normal = top.subtract(prevTop).cross(bottom.subtract(top)).scale(-1);
+                                            gl.glNormal3d(normal.x(), normal.y(), normal.z());
+                                        }
+                                        Vector normal = nextTop.subtract(top).cross(bottom.subtract(top));
+                                        // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                                        gl.glVertex3d(top.x(), top.y(), top.z());
+                                        gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
+                                        gl.glNormal3d(normal.x(), normal.y(), normal.z());
+                                    }
+                                    // Add the first inner and outer points of this curve again to close the ring
+                                    Vector top = getPointOnCurrentCurve(0, insideOrOutside?4:0);
+                                    Vector bottom = new Vector(top.x(), top.y(), -1);
+                                    gl.glVertex3d(top.x(), top.y(), top.z());
+                                    gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
+                                // Finish the triangle strip
+                                gl.glEnd();
+                            // Finish compiling the display list
+                            gl.glEndList();
+                        }
+                            
+                    return currentDisplayList;
         }
         
         /**
-         * Returns the position of the (@code curve)'th outermost curve at 0 <= (@code t) <= 1.<br>
+         * Returns the position of the current curve.<vr>
+         * 0 = the innermost curve
+         * 5 = the outermost curve.
+         * The curve parameter is a double to support getting the middle position of a track.
+         */
+        public Vector getPointOnCurrentCurve(double t, double curve) {
+            if (0 == currentTrackNr) {
+                return getPointOnTestCurve(t, curve);
+            } else if (1 == currentTrackNr) {
+                return getPointOnOCurve(t, curve);
+            } else if (2 == currentTrackNr) {
+                return getPointOnLCurve(t, curve);
+            } else if (3 == currentTrackNr) {
+                return getPointOnCCurve(t, curve);
+            } else if (4 == currentTrackNr) {
+                return getPointOnCustomCurve(t, curve);
+            }
+            return null;
+        }
+        
+        /**
+         * Returns the tangent of the current curve.<vr>
+         * 0 = the innermost curve
+         * 5 = the outermost curve.
+         * The curve parameter is a double to support getting the middle position of a track.
+         */
+        public Vector getTangentOnCurrentCurve(double t) {
+            if (0 == currentTrackNr) {
+                return getTestTangent(t);
+            } else if (1 == currentTrackNr) {
+                if (t >= 1) {
+                    t -= 1;
+                }
+                int numberOfSegments = (controlPointsOTrack.length-1)/3;
+                int segment = (int) Math.floor(t*numberOfSegments);
+                Vector P0 = controlPointsOTrack[segment*3];
+                Vector P1 = controlPointsOTrack[segment*3+1];
+                Vector P2 = controlPointsOTrack[segment*3+2];
+                Vector P3 = controlPointsOTrack[segment*3+3];
+                double bezierT = t-(((double) segment)/numberOfSegments);
+                Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3);
+                return tangent;
+            } else if (2 == currentTrackNr) {
+                //TODO same as above
+            } else if (3 == currentTrackNr) {
+                 //TODO same as above
+            } else if (4 == currentTrackNr) {
+                 //TODO same as above
+            }
+            return null;
+        }
+        
+         /**
+         * Returns the position of the {@code curve}'th outermost O curve at 0 <= {@code t} <= 1.<br>
          * 0 = the innermost curve
          * 5 = the outermost curve
          * The curve parameter is a double to support getting the middle position of a track.
          */
-        public Vector getPointOnCurve(double t, double curve) {
-            Vector point = getPoint(t);
+        public Vector getPointOnOCurve(double t, double curve) {
+            if (t >= 1) {
+                t -= 1;
+            }
+            int numberOfSegments = (controlPointsOTrack.length-1)/3;
+            int segment = (int) Math.floor(t*numberOfSegments);
+            
+            Vector P0 = controlPointsOTrack[segment*3];
+            Vector P1 = controlPointsOTrack[segment*3+1];
+            Vector P2 = controlPointsOTrack[segment*3+2];
+            Vector P3 = controlPointsOTrack[segment*3+3];
+            double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
+            Vector point = getCubicBezierPnt(bezierT, P0, P1, P2, P3);
             if (curve == 0) {
                 return point;
             }
-            Vector tangent = getTangent(t);
+            Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3).scale(-1);
             Vector normal = tangent.cross(Vector.Z).normalized();
             return point.add(normal.scale(curve));
         }
         
         /**
-         * Returns the position of the curve at 0 <= {@code t} <= 1.
+         * Returns the position of the {@code curve}'th outermost L curve at 0 <= {@code t} <= 1.<br>
+         * 0 = the innermost curve
+         * 5 = the outermost curve
+         * The curve parameter is a double to support getting the middle position of a track.
          */
-        public Vector getPoint(double t) {
+        public Vector getPointOnLCurve(double t, double curve) {
+            //TODO
+            return null;
+        }
+        
+        /**
+         * Returns the position of the {@code curve}'th outermost C curve at 0 <= {@code t} <= 1.<br>
+         * 0 = the innermost curve
+         * 5 = the outermost curve
+         * The curve parameter is a double to support getting the middle position of a track.
+         */
+        public Vector getPointOnCCurve(double t, double curve) {
+            //TODO
+            return null;
+        }
+        
+        /**
+         * Returns the position of the {@code curve}'th outermost custom curve at 0 <= {@code t} <= 1.<br>
+         * 0 = the innermost curve
+         * 5 = the outermost curve
+         * The curve parameter is a double to support getting the middle position of a track.
+         */
+        public Vector getPointOnCustomCurve(double t, double curve) {
+            //TODO
+            return null;
+        }
+        
+        /**
+         * Returns the position of the {@code curve}'th outermost test curve at 0 <= {@code t} <= 1.<br>
+         * 0 = the innermost curve
+         * 5 = the outermost curve
+         * The curve parameter is a double to support getting the middle position of a track.
+         */
+        public Vector getPointOnTestCurve(double t, double curve) {
+            Vector point = getTestPoint(t);
+            if (curve == 0) {
+                return point;
+            }
+            Vector tangent = getTestTangent(t);
+            Vector normal = tangent.cross(Vector.Z).normalized();
+            return point.add(normal.scale(curve));
+        }
+        
+        /**
+         * Returns the position of the test curve at 0 <= {@code t} <= 1.
+         */
+        public Vector getTestPoint(double t) {
             // / 10 * cos(2*pi*t) \
             // | 14 * sin(2*pi*t) |
             // \ 1                /
@@ -1282,9 +1438,9 @@ public class RobotRace extends Base {
         }
 
         /**
-         * Returns the tangent of the curve at 0 <= {@code t} <= 1.
+         * Returns the tangent of the test curve at 0 <= {@code t} <= 1.
          */
-        public Vector getTangent(double t) {
+        public Vector getTestTangent(double t) {
             // / 10 * cos(2*pi*t) \
             // | 14 * sin(2*pi*t) |
             // \ 1                /
@@ -1292,6 +1448,30 @@ public class RobotRace extends Base {
             return new Vector(-10 * Math.sin(2 * Math.PI * t),
                               14 * Math.cos(2 * Math.PI * t),
                               0);
+        }
+        
+        /**
+         * Returns a point on a cubic Bezier segment
+         */
+        public Vector getCubicBezierPnt(double t, Vector P0, Vector P1, Vector P2, Vector P3) {
+            Vector CasteljauA01 = P0.add(P1.subtract(P0).scale(t));
+            Vector CasteljauA12 = P1.add(P2.subtract(P1).scale(t));
+            Vector CasteljauA23 = P2.add(P3.subtract(P2).scale(t));
+            Vector CasteljauB01 = CasteljauA01.add(CasteljauA12.subtract(CasteljauA01).scale(t));
+            Vector CasteljauB12 = CasteljauA12.add(CasteljauA23.subtract(CasteljauA12).scale(t));
+            Vector CasteljauC01 = CasteljauB01.add(CasteljauB12.subtract(CasteljauB01).scale(t));
+            return CasteljauC01;
+            //return P0.scale((1-t)*(1-t)*(1-t)).add(P1.scale(3*t*(1-t)*(1-t))).add(P2.scale(3*t*t*(1-t))).add(P3.scale(t*t*t));
+        }
+        
+        /**
+         * Returns the approximate tangent vector on a cubic Bezier segment
+         */
+        public Vector getCubicBezierTng(double t, Vector P0, Vector P1, Vector P2, Vector P3) {
+            // commented out: correct equations but prone to errors
+                // standardBezier: return P0.scale((1-t)*(1-t)*(1-t)).add(P1.scale(3*t*(1-t)*(1-t))).add(P2.scale(3*t*t*(1-t))).add(P3.scale(t*t*t));
+                return P1.subtract(P0).scale(3*(1-t)*(1-t)).add(P2.subtract(P1).scale(6*(1-t)*t)).add(P3.subtract(P2).scale(3*t*t));
+            //return getCubicBezierPnt(t+0.001, P0, P1, P2, P3).subtract(getCubicBezierPnt(t, P0, P1, P2, P3));
         }
 
     }
