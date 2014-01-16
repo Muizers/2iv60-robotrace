@@ -552,7 +552,9 @@ public class RobotRace extends Base {
      *
      * Legs rotate from side to side, with an angle around 45 degrees. Under
      * its legs, there are nano-sized rollers that will translate this
-     * side-to-side motion to forward motion.
+     * side-to-side motion to forward motion. From this, the robots gain one
+     * large advantage: they get a great speed boost on curved parts of
+     * the track.
      *
      * The hands rotate from the front to the back, above its torso, with an
      * angle around 45 degrees. This 'waving' doesn't actually have a
