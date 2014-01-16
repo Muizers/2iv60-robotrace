@@ -1,4 +1,7 @@
+import com.jogamp.opengl.util.texture.TextureIO;
+import com.jogamp.opengl.util.texture.Texture;
 import java.awt.Color;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import javax.media.opengl.GL;
@@ -8,6 +11,11 @@ import robotrace.Base;
 import robotrace.Vector;
 import java.nio.FloatBuffer;
 import java.util.Random;
+import static javax.media.opengl.GL.GL_REPEAT;
+import static javax.media.opengl.GL.GL_TEXTURE_2D;
+import static javax.media.opengl.GL.GL_TEXTURE_WRAP_S;
+import static javax.media.opengl.GL.GL_TEXTURE_WRAP_T;
+import static javax.media.opengl.GL2GL3.GL_TEXTURE_1D;
 
 /**
  * Handles all of the RobotRace graphics functionality,
@@ -180,9 +188,11 @@ public class RobotRace extends Base {
         gl.glDepthFunc(GL_LESS);
 
         // Enable textures.
-        gl.glEnable(GL_TEXTURE_2D);
+       
         gl.glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
         gl.glBindTexture(GL_TEXTURE_2D, 0);
+        gl.glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+        gl.glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
         // normalize
         gl.glEnable(GL_NORMALIZE);
@@ -1216,6 +1226,18 @@ public class RobotRace extends Base {
         
         /** The last selected array of control points. */
         private Vector[] currentControlPoints;
+        
+        /** The texture for the track edges. */
+        private Texture trackEdgeTexture = null;
+        
+        /** Whether the texture for the track edges has been set up. */
+        private boolean trackEdgeTextureSetUp = false;
+        
+        /** The texture for the tracks. */
+        private Texture trackTexture = null;
+        
+        /** Whether the texture for the tracks has been set up. */
+        private boolean trackTextureSetUp = false;
 
         /**
          * Constructs the race track.
@@ -1228,6 +1250,18 @@ public class RobotRace extends Base {
          * Draws this track, based on the selected track number.
          */
         public void draw(int trackNr) {
+            
+            if (!trackEdgeTextureSetUp) {
+                /** Loads the track edge texture **/
+                trackEdgeTexture = load2DTexture("brick.png", gl);
+                trackEdgeTextureSetUp = true;
+            }
+            
+            if (!trackTextureSetUp) {
+                /** Loads the track texture **/
+                //trackTexture = load2DTexture("track.png", gl);
+                trackTextureSetUp = true;
+            }
             
             currentTrackNr = trackNr;
 
@@ -1300,11 +1334,17 @@ public class RobotRace extends Base {
                         gl.glCallList(currentDisplayList+4);
                     // Execute the display lists of the track edges
                         // Pass the material for the track edges
+                        gl.glDisable(GL_TEXTURE_1D);
+                        gl.glEnable(GL_TEXTURE_2D);
+                        gl.glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+                        gl.glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+                        trackEdgeTexture.bind(gl);
                         trackEdgeMaterial.setSurfaceColor(gl);
                         for (boolean insideOrOutside : new boolean [] {true, false}) {
                             // Call the display list
                             gl.glCallList(currentDisplayList+5+(insideOrOutside?1:0));
                         }
+                        gl.glBindTexture(GL_TEXTURE_2D, 0);
             
         }
         
@@ -1384,19 +1424,25 @@ public class RobotRace extends Base {
                                             Vector prevTop = getPointOnCurrentCurve(prevT, insideOrOutside?4:0);
                                             Vector normal = top.subtract(prevTop).cross(bottom.subtract(top));
                                             if(currentTrackNr != 0)normal=normal.scale(-1);
+                                            if(insideOrOutside)normal=normal.scale(-1);
                                             gl.glNormal3d(normal.x(), normal.y(), normal.z());
                                         }
                                         Vector normal = nextTop.subtract(top).cross(bottom.subtract(top));
                                         if(currentTrackNr != 0)normal=normal.scale(-1);
+                                        if(insideOrOutside)normal=normal.scale(-1);
                                         // Add these two vectors, that are on the same distance on the track, as vertices to the triangle strip
+                                        gl.glTexCoord2d(i/8D, 1);
                                         gl.glVertex3d(top.x(), top.y(), top.z());
+                                        gl.glTexCoord2d(i/8D, 0);
                                         gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
                                         gl.glNormal3d(normal.x(), normal.y(), normal.z());
                                     }
                                     // Add the first inner and outer points of this curve again to close the ring
                                     Vector top = getPointOnCurrentCurve(0, insideOrOutside?4:0);
                                     Vector bottom = new Vector(top.x(), top.y(), -1);
+                                    gl.glTexCoord2d(SEGMENTS/8D, 1);
                                     gl.glVertex3d(top.x(), top.y(), top.z());
+                                    gl.glTexCoord2d(SEGMENTS/8D, 0);
                                     gl.glVertex3d(bottom.x(), bottom.y(), bottom.z());
                                 // Finish the triangle strip
                                 gl.glEnd();
@@ -1767,6 +1813,8 @@ public class RobotRace extends Base {
                 // Set set up boolean to true
                 displayListTerrainSetUp = true;
             }
+            gl.glDisable(GL_TEXTURE_2D);
+            gl.glEnable(GL_TEXTURE_1D);
             // Bind the terrain texture
             gl.glBindTexture(GL_TEXTURE_1D, texture);
             // Execute the display list for the terrain
@@ -1782,6 +1830,33 @@ public class RobotRace extends Base {
             return height;
         }
         
+    }
+    
+    /**
+     * Creates a new 2D texture
+     * @param file
+     * @param gl
+     * @return 
+     */
+    private Texture load2DTexture(String file, GL2 gl) {
+        Texture result = null;
+
+        try {
+            // Try to load from local folder.
+            result = TextureIO.newTexture(new File(file), false);
+        } catch (Exception e1) {
+            // Try to load from /src folder instead.
+            try {
+                result = TextureIO.newTexture(new File("src/" + file), false);
+            } catch (Exception e2) {
+            }
+        }
+
+        if (result != null) {
+            result.enable(gl);
+        }
+
+        return result;
     }
 
        /**
