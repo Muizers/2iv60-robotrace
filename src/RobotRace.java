@@ -1335,7 +1335,7 @@ public class RobotRace extends Base {
                 Vector P1 = controlPointsOTrack[segment*3+1];
                 Vector P2 = controlPointsOTrack[segment*3+2];
                 Vector P3 = controlPointsOTrack[segment*3+3];
-                double bezierT = t-(((double) segment)/numberOfSegments);
+                double bezierT = (t-(((double) segment)/numberOfSegments))*numberOfSegments;
                 Vector tangent = getCubicBezierTng(bezierT, P0, P1, P2, P3);
                 return tangent;
             } else if (2 == currentTrackNr) {
@@ -1454,14 +1454,14 @@ public class RobotRace extends Base {
          * Returns a point on a cubic Bezier segment
          */
         public Vector getCubicBezierPnt(double t, Vector P0, Vector P1, Vector P2, Vector P3) {
-            Vector CasteljauA01 = P0.add(P1.subtract(P0).scale(t));
+            /*Vector CasteljauA01 = P0.add(P1.subtract(P0).scale(t));
             Vector CasteljauA12 = P1.add(P2.subtract(P1).scale(t));
             Vector CasteljauA23 = P2.add(P3.subtract(P2).scale(t));
             Vector CasteljauB01 = CasteljauA01.add(CasteljauA12.subtract(CasteljauA01).scale(t));
             Vector CasteljauB12 = CasteljauA12.add(CasteljauA23.subtract(CasteljauA12).scale(t));
             Vector CasteljauC01 = CasteljauB01.add(CasteljauB12.subtract(CasteljauB01).scale(t));
-            return CasteljauC01;
-            //return P0.scale((1-t)*(1-t)*(1-t)).add(P1.scale(3*t*(1-t)*(1-t))).add(P2.scale(3*t*t*(1-t))).add(P3.scale(t*t*t));
+            return CasteljauC01;*/
+            return P0.scale((1-t)*(1-t)*(1-t)).add(P1.scale(3*t*(1-t)*(1-t))).add(P2.scale(3*t*t*(1-t))).add(P3.scale(t*t*t));
         }
         
         /**
